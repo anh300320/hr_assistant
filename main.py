@@ -26,10 +26,8 @@ def main():
     # )
     # files = gg_drive.load_all_metadata()
     # print(files)
-
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-    parser = ImageParser()
-    text = parser.parse("resources/test_data/Screenshot 2024-04-27 210934.png")
+    parser = PdfParser()
+    text = parser.parse("resources/test_data/Customily_-Lê-Khánh-Huyền.pdf")
     print(text)
 
 

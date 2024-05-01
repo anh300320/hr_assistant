@@ -57,7 +57,7 @@ class GoogleDrive(Vault):
                 folder.name
             )
             nested_files = self._load_all_files_in_folder_recursive(
-                folder.internal_id
+                folder.vault_id
             )
             files.extend(nested_files)
         return files

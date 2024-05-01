@@ -1,15 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
 
-
-@dataclass
-class Metadata:
-    name: str
-    internal_id: str
-    link: Optional[str] = None
-    create_date: Optional[datetime] = None
+from src.common.objects import Metadata
 
 
 class Vault(ABC):

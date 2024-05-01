@@ -2,3 +2,6 @@ google-api-python-client>=2.127.0
 google-auth-httplib2>=0.2.0
 google-auth-oauthlib>=1.2.0
 nltk==3.8.1
+pytesseract==0.3.10
+pillow==10.3.0
+pypdf==4.2.0

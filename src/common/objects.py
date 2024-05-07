@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 
 @dataclass
@@ -23,6 +23,7 @@ class Metadata:
     file_type: Optional[FileType] = None    # TODO
     link: Optional[str] = None
     create_date: Optional[datetime] = None
+    update_date: Optional[datetime] = None
 
 
 @dataclass
@@ -35,3 +36,17 @@ class ParsedDocument:
 class Reference:
     metadata: Metadata
     position: int
+
+
+Index = dict[str, list[Reference]]
+
+
+class LoadedFileType(Enum):
+    ON_DISK = 1
+    IN_MEMORY = 2
+
+
+@dataclass
+class LoadedFile:
+    loaded_type: LoadedFileType
+    content: Union[str, bytes]

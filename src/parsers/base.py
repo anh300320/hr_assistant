@@ -3,8 +3,7 @@ from typing import Union
 
 
 class Parser(ABC):
-    def __init__(self):
-        pass
+    file_types = []
 
     @abstractmethod
     def parse(self, data: Union[bytes, str]) -> str:

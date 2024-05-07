@@ -7,6 +7,9 @@ from src.parsers.base import Parser
 
 
 class ImageParser(Parser):
+
+    file_types = 'png'
+
     def parse(self, data: [bytes, str]) -> str:
         if isinstance(data, bytes):
             file = io.BytesIO(data)

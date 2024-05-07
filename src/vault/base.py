@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from src.common.objects import Metadata
+from src.common.objects import Metadata, LoadedFile
 
 
 class Vault(ABC):
@@ -17,5 +17,5 @@ class Vault(ABC):
     def load_content(
             self,
             metadata: Metadata
-    ):
+    ) -> LoadedFile:
         raise NotImplementedError

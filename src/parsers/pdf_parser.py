@@ -1,4 +1,5 @@
 import io
+import logging
 from typing import Union
 
 from pypdf import PdfReader
@@ -7,8 +8,7 @@ from src.parsers.base import Parser
 
 
 class PdfParser(Parser):
-    def __init__(self):
-        super().__init__()
+    file_types = ['pdf']
 
     def parse(self, data: Union[bytes, str]) -> str:
         file = data

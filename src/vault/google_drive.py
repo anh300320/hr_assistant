@@ -1,35 +1,45 @@
+import io
 import logging
 import os
 import random
 import time
 from typing import Optional
 
+import requests
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaIoBaseDownload
 
 from src.common.exceptions import InternalException
+from src.common.objects import LoadedFile
 from src.vault.base import Vault, Metadata
 
-SCOPES = ["https://www.googleapis.com/auth/drive.metadata.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 RETRY = 6
 PAGE_SIZE = 20
 
 
 class GoogleDrive(Vault):
 
-    def load_content(self, metadata: Metadata):
-        pass
-
     def __init__(self, config):
         super().__init__(config)
         self._vault_root = config.get('google_drive_folder', None)
+        self._temp_dir = config.get('temp_dir', 'google_drive_temp')
         self._google_credential_dir = config.get(
             'google_credential_dir',
             'resources'
         )
+
+    def load_content(self, metadata: Metadata) -> LoadedFile:
+        os.makedirs(self._temp_dir, exist_ok=True)
+        temp_fp = os.path.join(self._temp_dir, metadata.name)
+        file_content = self._download_file(metadata)
+        with open(temp_fp, 'wb') as fd:
+            fd.write(file_content)
+        return temp_fp
 
     def load_all_metadata(self) -> list[Metadata]:
         folder_id = self._load_folder_id(self._vault_root)
@@ -83,7 +93,7 @@ class GoogleDrive(Vault):
             for file in resp.get("files", []):
                 metadata = Metadata(
                     name=file['name'],
-                    internal_id=file['id'],
+                    vault_id=file['id'],
                     link=file.get('webContentLink'),
                 )
                 metadatas.append(metadata)
@@ -96,7 +106,7 @@ class GoogleDrive(Vault):
         credentials = self._auth()
         resp = self._list_file(
             credentials=credentials,
-            page_size=1,
+            page_size=20,
             query=f"mimeType='application/vnd.google-apps.folder' and name = '{folder_name}'"
         )
         folders = resp.get("files", [])
@@ -105,6 +115,9 @@ class GoogleDrive(Vault):
                 f"Folder not found {self._vault_root}"
             )
         elif len(folders) > 1:
+            for folder in folders:
+                if folder["name"] == folder_name:
+                    return folder['id']
             raise InternalException(
                 f"Unexpected number of folder found {folders}",
             )
@@ -173,3 +186,27 @@ class GoogleDrive(Vault):
             with open(token_fp, "w") as token:
                 token.write(creds.to_json())
         return creds
+
+    def _download_file(
+            self,
+            metadata: Metadata,
+    ) -> bytes:
+        creds = self._auth()
+        try:
+            service = build("drive", "v3", credentials=creds)
+
+            file_id = metadata.vault_id
+
+            # pylint: disable=maybe-no-member
+            request = service.files().get_media(fileId=file_id)
+            file = io.BytesIO()
+            downloader = MediaIoBaseDownload(file, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+            return file.getvalue()
+        except HttpError:
+            logging.getLogger(__name__).exception(
+                "Error occurred when downloading file %s",
+                metadata.name
+            )

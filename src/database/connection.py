@@ -6,10 +6,13 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
+from src.database import models
+
 SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False))
 
 
-def get_db() -> Generator:
+@contextmanager
+def get_db():
     session = SessionLocal
     try:
         yield session

@@ -6,3 +6,4 @@ pytesseract==0.3.10
 pillow==10.3.0
 pypdf==4.2.0
 SQLAlchemy==2.0.30
+lsm==0.5.4

@@ -1,3 +1,5 @@
+import os
+
 from src.common.objects import Token
 from src.tokenizer.base import Tokenizer
 
@@ -13,30 +15,30 @@ class SemanticTokenize(Tokenizer):
             text: str,
     ) -> list[Token]:
         text = text.lower()
-        # truncated_text = self._filter_out_special_char(text)
-        return self._dp(text)
+        truncated_text = self._filter_out_special_char(text)
+        return self._dp(truncated_text)
 
     def _dp(
             self,
-            truncated_text: str,
+            text: str,
     ):
-        truncated_text = ' ' + truncated_text
-        f = [len(truncated_text)] * len(truncated_text)
-        trace = [-1] * len(truncated_text)
+        text = ' ' + text
+        f = [len(text)] * len(text)
+        trace = [-1] * len(text)
         f[0] = 0
         trace[0] = 0
-        for i in range(1, len(truncated_text)):
+        for i in range(1, len(text)):
             for j in range(self._max_len * 2):
                 if i - j <= 0:
                     continue
-                check_word = truncated_text[(i - j):(i + 1)]
+                check_word = text[(i - j):(i + 1)]
                 check_word = self._filter_out_special_char(check_word)
                 if check_word in self._words:
                     if f[i-j-1] < f[i]:
                         f[i] = f[i-j-1]
                         trace[i] = i-j-1
                     elif f[i-j-1] == f[i]:
-                        if not truncated_text[i - j].isalpha() or not truncated_text[i - j - 1].isalpha():
+                        if not text[i - j].isalpha() or not text[i - j - 1].isalpha():
                             f[i] = f[i - j - 1]
                             trace[i] = i - j - 1
                 else:
@@ -45,13 +47,14 @@ class SemanticTokenize(Tokenizer):
                         trace[i] = i-j-1
         # Trace back
         tokens = []
-        last_pos = len(truncated_text) - 1
+        last_pos = len(text) - 1
         while last_pos:
-            token = truncated_text[trace[last_pos] + 1: last_pos + 1]
-            tokens.append(Token(self._filter_out_special_char(token), last_pos))
+            token = text[trace[last_pos] + 1: last_pos + 1]
+            # tokens.append(Token(self._filter_out_special_char(token), last_pos))
+            tokens.append(token)
             last_pos = trace[last_pos]
         tokens = list(reversed(tokens))
-        # tokens = [Token(text, pos) for pos, text in enumerate(tokens)]
+        tokens = [Token(text, pos) for pos, text in enumerate(tokens)]
         return tokens
 
     def _filter_out_special_char(self, text: str) -> str:

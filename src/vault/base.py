@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from src.common.objects import Metadata, LoadedFile
+from src.common.objects import Metadata, LoadedFile, VaultType
 
 
 class Vault(ABC):
+
+    vault_type: VaultType
 
     def __init__(self, config):
         self._vault_root: Optional[str] = None

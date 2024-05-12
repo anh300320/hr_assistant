@@ -17,6 +17,7 @@ class VaultType(enum.Enum):
 class DocumentInfo(Base):
     __tablename__ = 'document_info'
     id: Mapped[int] = mapped_column(primary_key=True)
+    vault_id: Mapped[str]
     name: Mapped[str]
     vault_type: Mapped[VaultType] = mapped_column(Enum(VaultType))
     path: Mapped[str]

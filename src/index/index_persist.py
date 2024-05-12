@@ -2,8 +2,11 @@ import dataclasses
 import json
 import logging
 from collections import defaultdict
+from typing import List
 
-from src.common.objects import Reference
+from lsm import LSM
+
+from src.common.objects import Index, Reference
 
 
 class IndexPersistent:
@@ -13,31 +16,25 @@ class IndexPersistent:
 
     def persist(
             self,
-            index: dict[str, list[Reference]],
-    ):
-        converted = self._convert_all_to_dict(index)
-        self._save_to_file(converted)
-
-    def _save_to_file(
-            self,
-            converted: dict[str, list[dict]],
+            index: Index,
     ):
         logging.getLogger(__name__).info(
-            'Saving file to %s',
-            self._index_fp
+            "Persisting %s keywords to LSM",
+            len(index.index.keys())
         )
-        json.dump(self._index_fp)
+        with LSM(self._index_fp) as db:
+            for key, refs in index.index.items():
+                val = self._convert_to_str_value(refs)
+                current_val = ""
+                if key in db:
+                    current_val = db[key]
+                db[key] = ",".join([current_val, val])
 
-    def _convert_all_to_dict(
+    def _convert_to_str_value(
             self,
-            index: dict[str, list[Reference]],
-    ) -> dict[str, list[dict]]:
-        converted_to_dict = defaultdict(list)
-        for key, refs in index.items():
-            for ref in refs:
-                convert = {
-                    'metadata': dataclasses.asdict(ref.metadata),
-                    'position': ref.position,
-                }
-                converted_to_dict[key].append(convert)
-        return converted_to_dict
+            references: List[Reference]
+    ) -> str:
+        values = []
+        for ref in references:
+            values.append(f"{ref.document_id}|{ref.position}")
+        return ",".join(values)

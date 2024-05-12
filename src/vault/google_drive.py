@@ -3,7 +3,8 @@ import logging
 import os
 import random
 import time
-from typing import Optional
+from datetime import datetime
+from typing import Optional, Union
 
 import requests
 from google.auth.transport.requests import Request
@@ -14,7 +15,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
 
 from src.common.exceptions import InternalException
-from src.common.objects import LoadedFile
+from src.common.objects import LoadedFile, LoadedFileType, VaultType, FileType
 from src.vault.base import Vault, Metadata
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
@@ -23,6 +24,8 @@ PAGE_SIZE = 20
 
 
 class GoogleDrive(Vault):
+
+    vault_type = VaultType.GOOGLE_DRIVE
 
     def __init__(self, config):
         super().__init__(config)
@@ -39,7 +42,10 @@ class GoogleDrive(Vault):
         file_content = self._download_file(metadata)
         with open(temp_fp, 'wb') as fd:
             fd.write(file_content)
-        return temp_fp
+        return LoadedFile(
+            loaded_type=LoadedFileType.ON_DISK,
+            content=temp_fp
+        )
 
     def load_all_metadata(self) -> list[Metadata]:
         folder_id = self._load_folder_id(self._vault_root)
@@ -86,18 +92,50 @@ class GoogleDrive(Vault):
                 credentials=credentials,
                 page_size=PAGE_SIZE,
                 query=f"'{folder_id}' in parents",
-                fields="nextPageToken, files(id, name, webContentLink)",
+                fields="nextPageToken, files(id, name, webContentLink, mimeType, fullFileExtension, createdTime, modifiedTime)",
                 page_token=next_page_token,
             )
             next_page_token = resp.get("nextPageToken")
             for file in resp.get("files", []):
+                file_type = self._parse_extension(
+                    extension=file.get('fullFileExtension'),
+                    mime_type=file.get('mimeType')
+                )
                 metadata = Metadata(
                     name=file['name'],
                     vault_id=file['id'],
+                    vault_type=self.vault_type,
                     link=file.get('webContentLink'),
+                    file_type=file_type,
+                    create_date=self._parse_date(file.get('createdTime')),
+                    update_date=self._parse_date(file.get('modifiedTime'))
                 )
                 metadatas.append(metadata)
         return metadatas
+
+    def _parse_date(self, dt_str: str) -> Optional[datetime]:
+        try:
+            return datetime.fromisoformat(dt_str)
+        except Exception:
+            return None
+
+    def _parse_extension(
+            self,
+            extension: Optional[str] = None,
+            mime_type: Optional[str] = None
+    ) -> Union[None, FileType]:
+        if extension:
+            if extension in ['doc', 'docx']:
+                return FileType.DOC
+            if extension == 'pdf':
+                return FileType.PDF
+        if mime_type == 'application/msword':
+            return FileType.DOC
+        if mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            return FileType.DOC
+        if mime_type == 'application/pdf':
+            return FileType.PDF
+        return None
 
     def _load_folder_id(
             self,

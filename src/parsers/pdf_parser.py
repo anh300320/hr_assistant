@@ -4,11 +4,13 @@ from typing import Union
 
 from pypdf import PdfReader
 
+from src.common.objects import LoadedFileType, FileType
 from src.parsers.base import Parser
 
 
 class PdfParser(Parser):
-    file_types = ['pdf']
+    file_types = [FileType.PDF]
+    supported = LoadedFileType.IN_MEMORY
 
     def parse(self, data: Union[bytes, str]) -> str:
         file = data

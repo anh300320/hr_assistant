@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from src.common.objects import Metadata
+from src.common.objects import Metadata, LoadedFile, VaultType
 
 
 class Vault(ABC):
+
+    vault_type: VaultType
 
     def __init__(self, config):
         self._vault_root: Optional[str] = None
@@ -17,5 +19,5 @@ class Vault(ABC):
     def load_content(
             self,
             metadata: Metadata
-    ):
+    ) -> LoadedFile:
         raise NotImplementedError

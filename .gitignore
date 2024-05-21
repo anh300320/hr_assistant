@@ -110,3 +110,4 @@ main.log*
 
 resources/credentials.json
 resources/token.json
+google_drive_temp/

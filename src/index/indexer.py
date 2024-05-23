@@ -3,6 +3,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Generator, Tuple, List
 
+from src.common.disk_sentinel import DiskSentinel
 from src.common.objects import Metadata, LoadedFileType, Index
 from src.database import crud
 from src.database.models import DocumentInfo
@@ -20,7 +21,8 @@ class Indexer:
             vault: Vault,
             tokenizers: list[Tokenizer],
             parsers: list[Parser],
-            index_persistent: IndexPersistent
+            index_persistent: IndexPersistent,
+            disk_sentinel: DiskSentinel,
     ):
         self._last_updated_fp = last_updated_fp     # TODO
         self._vault = vault
@@ -31,12 +33,21 @@ class Indexer:
             for t in parser.file_types:
                 self._parsers[t] = parser
         self._index_persistent = index_persistent
+        self._disk_sentinel = disk_sentinel
 
     def run(self):
-        all_metadata = self._vault.load_all_metadata()
-        added_documents_info = self._persist_metadata(all_metadata)
-        index = self._build_index(all_metadata)     # TODO handle when index size is too big
-        self._persist_index(index, added_documents_info)
+        try:
+            saved = []
+            gen = crud.load_all_metadatas(self._vault.vault_type.value)
+            for m in gen:
+                saved.extend(m)
+            all_metadata = self._vault.load_all_metadata()  # TODO batching
+            all_metadata = all_metadata[:10]
+            added_documents_info = self._persist_metadata(all_metadata)
+            index = self._build_index(all_metadata)     # TODO handle when index size is too big
+            self._persist_index(index, added_documents_info)
+        finally:
+            self._disk_sentinel.clean_up()
 
     def _build_index(
             self,

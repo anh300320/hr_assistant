@@ -6,7 +6,7 @@ from src.tokenizer.base import Tokenizer
 
 class SemanticTokenize(Tokenizer):
     def __init__(self, config):
-        self._supported_langs = config.get('supported_language', ['vie'])
+        self._supported_langs = config.get('supported_language', ['vie', 'eng'])
         self._dictionary_tmpl = config.get('dictionary_tmpl', os.path.join('resources', '{lang}.dictionary'))
         self._max_len, self._words = self._load_words()
 
@@ -15,8 +15,8 @@ class SemanticTokenize(Tokenizer):
             text: str,
     ) -> list[Token]:
         text = text.lower()
-        truncated_text = self._filter_out_special_char(text)
-        return self._dp(truncated_text)
+        # truncated_text = self._filter_out_special_char(text)
+        return self._dp(text)
 
     def _dp(
             self,
@@ -50,11 +50,11 @@ class SemanticTokenize(Tokenizer):
         last_pos = len(text) - 1
         while last_pos:
             token = text[trace[last_pos] + 1: last_pos + 1]
-            # tokens.append(Token(self._filter_out_special_char(token), last_pos))
-            tokens.append(token)
+            tokens.append(Token(self._filter_out_special_char(token), last_pos))
             last_pos = trace[last_pos]
         tokens = list(reversed(tokens))
-        tokens = [Token(text, pos) for pos, text in enumerate(tokens)]
+        for i, token in enumerate(tokens):
+            token.position = i
         return tokens
 
     def _filter_out_special_char(self, text: str) -> str:

@@ -86,3 +86,4 @@ class LoadedFile:
         if self._loaded_type == LoadedFileType.ON_DISK:
             if os.path.exists(self._content):
                 os.remove(self._content)
+        return False

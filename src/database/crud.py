@@ -28,3 +28,20 @@ def add_document_metadata(metadatas: List[Metadata]) -> List[DocumentInfo]:
             len(batch)
         )
         return batch
+
+
+def load_all_metadatas(
+        vault_type: int,
+        batch_size: int = 1000,
+) -> List[DocumentInfo]:
+    page = 0
+    with get_db() as db:
+        while True:
+            sqlite3(DocumentInfo)\
+                .filter_by(vault_type=models.VaultType(vault_type))\
+                .limit(batch_size)\
+                .offset(page * batch_size)
+            if not rows:
+                break
+            yield rows # TODO convert
+            page += 1

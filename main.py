@@ -9,6 +9,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from lsm import LSM
 
+from src.common.disk_sentinel import DiskSentinel
 from src.common.logging import init_logging
 from src.database.connection import init_database
 from src.index.index_persist import IndexPersistent
@@ -26,6 +27,9 @@ SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 def main():
     init_logging()
     init_database(f'sqlite:///{os.path.join("temp", "hr_assistant.db")}')
+    config = {
+        "google_drive_folder": "TEST_CV",
+      }
     tokenizers = [
         SemanticTokenize({}),
         Tokenizer()
@@ -34,24 +38,27 @@ def main():
         PdfParser(),
         DocParser(),
     ]
-    vault = GoogleDrive(
-      {
-        "google_drive_folder": "TEST_CV",
-      }
-    )
+    vault = GoogleDrive(config)
     index_persistent = IndexPersistent(
         {
             'index_fp': os.path.join("temp", "index.lsm")
         }
     )
+    disk_sentinel = DiskSentinel(config)
     indexer = Indexer(
         "",
         vault,
         tokenizers,
         parsers,
-        index_persistent
+        index_persistent,
+        disk_sentinel
     )
     indexer.run()
+
+    # with LSM(os.path.join("temp", "index.lsm"), binary=False) as db:
+    #     x = db['pháp']
+    #     print(x)
+
 
 
 if __name__ == "__main__":

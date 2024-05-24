@@ -1,10 +1,10 @@
 import logging
-from collections import defaultdict
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Generator, Tuple, List
+from typing import List
 
 from src.common.disk_sentinel import DiskSentinel
-from src.common.objects import Metadata, LoadedFileType, Index
+from src.common.objects import Metadata, Index
 from src.database import crud
 from src.database.models import DocumentInfo
 from src.index.index_persist import IndexPersistent
@@ -37,14 +37,17 @@ class Indexer:
 
     def run(self):
         try:
-            saved = []
-            gen = crud.load_all_metadatas(self._vault.vault_type.value)
-            for m in gen:
-                saved.extend(m)
             all_metadata = self._vault.load_all_metadata()  # TODO batching
-            all_metadata = all_metadata[:10]
-            added_documents_info = self._persist_metadata(all_metadata)
-            index = self._build_index(all_metadata)     # TODO handle when index size is too big
+            new_docs: List[Metadata] = []
+            updated_docs: List[Metadata] = []
+            for metadata in all_metadata:
+                saved = crud.get_document(metadata.vault_id, metadata.vault_type)
+                if not saved:
+                    new_docs.append(metadata)
+                elif saved.update_date < metadata.update_date:
+                    updated_docs.append(metadata)
+            added_documents_info = self._persist_metadata(news)
+            index = self._build_index(news)     # TODO handle when index size is too big
             self._persist_index(index, added_documents_info)
         finally:
             self._disk_sentinel.clean_up()
@@ -58,15 +61,10 @@ class Indexer:
             len(all_metadata)
         )
         index = Index()
-        finised_cnt = 0
+        finished_cnt = 0
         for metadata, loaded_file in self._load_file_with_multithread(all_metadata):
-            finised_cnt += 1
-            logging.getLogger(__name__).info(
-                "Loaded %s/%s files",
-                finised_cnt,
-                len(all_metadata)
-            )
             with loaded_file as file:
+                start_cp = time.perf_counter()
                 parser = self._parsers.get(metadata.file_type)
                 if not parser:
                     logging.getLogger(__name__).info(
@@ -77,20 +75,28 @@ class Indexer:
                 logging.getLogger(__name__).info(
                     "Processing file %s", metadata
                 )
-                try:
-                    content = parser.parse(file)
-                    for tokenizer in self._tokenizers:
-                        tokens = tokenizer.tokenize(content)
-                        index.update(tokens, metadata)
-                except Exception as e:
-                    print('x')
+                content = parser.parse(file)
+                for tokenizer in self._tokenizers:
+                    tokens = tokenizer.tokenize(content)
+                    index.update(tokens, metadata)
+                finish_cp = time.perf_counter()
+            finished_cnt += 1
+            logging.getLogger(__name__).info(
+                "Finished indexing file %s, elapse time %s",
+                loaded_file, finish_cp - start_cp
+            )
+            logging.getLogger(__name__).info(
+                "Loaded %s/%s files",
+                finished_cnt,
+                len(all_metadata)
+            )
         return index
 
     def _persist_metadata(
             self,
             all_metadata: List[Metadata],
     ) -> list[DocumentInfo]:
-        return crud.add_document_metadata(all_metadata)
+        return crud.add_document_metadata(all_metadata) # TODO do upsert
 
     def _persist_index(
             self,

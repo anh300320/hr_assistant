@@ -23,7 +23,7 @@ def get_db():
 db_context = contextmanager(get_db)
 
 
-def init_database(sqlite_db_url: str, trading_date: date | None = None) -> None:
+def init_database(sqlite_db_url: str) -> None:
     sqlite_local_fp = sqlite_db_url.replace("sqlite:///", "", 1)
     Path(sqlite_local_fp).parent.mkdir(exist_ok=True, parents=True)
     engine = create_engine(

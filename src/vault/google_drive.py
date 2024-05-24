@@ -36,7 +36,7 @@ class GoogleDrive(Vault):
             'resources'
         )
 
-    def load_content(self, metadata: Metadata) -> LoadedFile:
+    def _download_file(self, metadata: Metadata) -> LoadedFile:
         os.makedirs(self._temp_dir, exist_ok=True)
         temp_fp = os.path.join(self._temp_dir, metadata.name)
         file_content = self._download_file(metadata)

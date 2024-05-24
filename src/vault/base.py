@@ -1,3 +1,5 @@
+import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -15,8 +17,20 @@ class Vault(ABC):
     def load_all_metadata(self) -> list[Metadata]:
         raise NotImplementedError
 
-    @abstractmethod
     def load_content(
+            self,
+            metadata: Metadata
+    ) -> LoadedFile:
+        start_cp = time.perf_counter()
+        self._download_file(metadata)
+        finish_cp = time.perf_counter()
+        logging.getLogger(__name__).debug(
+            "Loaded content for metadata finished, elapsed time %s",
+            finish_cp - start_cp
+        )
+
+    @abstractmethod
+    def _download_file(
             self,
             metadata: Metadata
     ) -> LoadedFile:

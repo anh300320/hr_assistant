@@ -1,34 +1,34 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
+
+from sqlalchemy.orm import Session
 
 from src.common.objects import Metadata, VaultType
 from src.database import models
 from src.database.connection import get_db
 from src.database.models import DocumentInfo
-from sqlalchemy import select
+from sqlalchemy import select, update, bindparam
 
 
-def add_document_metadata(metadatas: List[Metadata]) -> List[DocumentInfo]:
-    with get_db() as db:
-        # db = SessionLocal()
-        batch = []
-        for metadata in metadatas:
-            obj = DocumentInfo(
-                name=metadata.name,
-                vault_id=metadata.vault_id,
-                vault_type=models.VaultType(metadata.vault_type.value),
-                path=metadata.link,
-                create_date=metadata.update_date,
-                update_date=metadata.create_date,
-            )
-            batch.append(obj)
-        db.add_all(batch)
-        db.flush()
-        logging.getLogger(__name__).info(
-            "Inserted %s metadatas to db",
-            len(batch)
+def add_document_metadata(session: Session, metadatas: List[Metadata]) -> List[DocumentInfo]:
+    # db = SessionLocal()
+    batch = []
+    for metadata in metadatas:
+        obj = DocumentInfo(
+            name=metadata.name,
+            vault_id=metadata.vault_id,
+            vault_type=models.VaultType(metadata.vault_type.value),
+            path=metadata.link,
+            create_date=metadata.update_date,
+            update_date=metadata.create_date,
         )
-        return batch
+        batch.append(obj)
+    session.add_all(batch)
+    logging.getLogger(__name__).info(
+        "Inserted %s metadatas to db",
+        len(batch)
+    )
+    return batch
 
 
 def load_all_metadatas(
@@ -39,7 +39,7 @@ def load_all_metadatas(
     with get_db() as db:
         while True:
             stmt = select(DocumentInfo)\
-                .where(DocumentInfo.c.vault_type == models.VaultType(vault_type))\
+                .where(DocumentInfo.vault_type == models.VaultType(vault_type))\
                 .limit(batch_size)\
                 .offset(page * batch_size)
             rows = db.execute(stmt)
@@ -56,11 +56,32 @@ def get_document(
         stmt = (
             select(DocumentInfo)
             .where(
-                DocumentInfo.c.vault_type == models.VaultType(vault_type.value),
-                DocumentInfo.c.vault_id == vault_id
+                DocumentInfo.vault_type == models.VaultType(vault_type.value),
+                DocumentInfo.vault_id == vault_id
             )
         )
-        rows = db.execute(stmt)
+        rows = db.execute(stmt).fetchall()
         if not rows:
             return None
-        return rows[0]
+        return next(iter(rows))
+
+
+def batch_update_docs_update_time(
+        session: Session,
+        metadatas: List[Tuple[DocumentInfo, Metadata]],
+):
+    stmt = (
+        update(DocumentInfo)
+        .where(DocumentInfo.id == bindparam("_id"))
+        .values(
+            {
+                "update_date": bindparam("_update_time")
+            }
+        )
+    )
+    session.execute(
+        stmt,
+        [
+            {'_id': d.id, '_update_time': m.update_date} for d, m in metadatas
+        ]
+    )

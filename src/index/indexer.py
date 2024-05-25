@@ -1,11 +1,12 @@
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List
+from typing import List, Tuple
 
 from src.common.disk_sentinel import DiskSentinel
 from src.common.objects import Metadata, Index
 from src.database import crud
+from src.database.connection import get_db
 from src.database.models import DocumentInfo
 from src.index.index_persist import IndexPersistent
 from src.parsers.base import Parser
@@ -38,17 +39,20 @@ class Indexer:
     def run(self):
         try:
             all_metadata = self._vault.load_all_metadata()  # TODO batching
+            all_metadata = all_metadata[:100]
             new_docs: List[Metadata] = []
-            updated_docs: List[Metadata] = []
+            updated_docs: List[Tuple[DocumentInfo, Metadata]] = []
             for metadata in all_metadata:
-                saved = crud.get_document(metadata.vault_id, metadata.vault_type)
+                saved = crud.get_document(
+                    metadata.vault_id,
+                    metadata.vault_type,
+                )
                 if not saved:
                     new_docs.append(metadata)
                 elif saved.update_date < metadata.update_date:
-                    updated_docs.append(metadata)
-            added_documents_info = self._persist_metadata(news)
-            index = self._build_index(news)     # TODO handle when index size is too big
-            self._persist_index(index, added_documents_info)
+                    updated_docs.append((saved, metadata))
+            self._build_for_updated_documents(updated_docs)
+            self._build_for_new_documents(new_docs)
         finally:
             self._disk_sentinel.clean_up()
 
@@ -92,11 +96,27 @@ class Indexer:
             )
         return index
 
-    def _persist_metadata(
+    def _build_for_updated_documents(
             self,
-            all_metadata: List[Metadata],
-    ) -> list[DocumentInfo]:
-        return crud.add_document_metadata(all_metadata) # TODO do upsert
+            updated_docs: List[Tuple[DocumentInfo, Metadata]],
+    ):
+        if not updated_docs:
+            return
+        with get_db() as db:
+            crud.batch_update_docs_update_time(db, updated_docs)
+            index = self._build_index([m for _, m in updated_docs])
+            self._persist_index(index, [d for d, _ in updated_docs])
+
+    def _build_for_new_documents(
+            self,
+            new_docs: List[Metadata],
+    ):
+        if not new_docs:
+            return
+        with get_db() as db:
+            inserted_docs = crud.add_document_metadata(db, new_docs)
+            index = self._build_index(new_docs)
+            self._persist_index(index, inserted_docs)
 
     def _persist_index(
             self,

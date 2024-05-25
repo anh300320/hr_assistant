@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 
 from src.database import models
 
-SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False))
+SessionLocal = scoped_session(sessionmaker(autoflush=True))
 
 
 @contextmanager
@@ -16,6 +16,9 @@ def get_db():
     session = SessionLocal
     try:
         yield session
+    except:
+        session.rollback()
+        raise
     finally:
         session.close()
 

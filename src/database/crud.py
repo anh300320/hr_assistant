@@ -24,6 +24,7 @@ def add_document_metadata(session: Session, metadatas: List[Metadata]) -> List[D
         )
         batch.append(obj)
     session.add_all(batch)
+    session.commit()
     logging.getLogger(__name__).info(
         "Inserted %s metadatas to db",
         len(batch)
@@ -60,10 +61,8 @@ def get_document(
                 DocumentInfo.vault_id == vault_id
             )
         )
-        rows = db.execute(stmt).fetchall()
-        if not rows:
-            return None
-        return next(iter(rows))
+        row = db.execute(stmt).scalars().first()
+        return row
 
 
 def batch_update_docs_update_time(
@@ -85,3 +84,4 @@ def batch_update_docs_update_time(
             {'_id': d.id, '_update_time': m.update_date} for d, m in metadatas
         ]
     )
+    session.commit()

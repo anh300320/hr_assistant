@@ -3,6 +3,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Tuple
 
+import pytz
+from sqlalchemy.orm import Session
+
 from src.common.disk_sentinel import DiskSentinel
 from src.common.objects import Metadata, Index
 from src.database import crud
@@ -39,7 +42,7 @@ class Indexer:
     def run(self):
         try:
             all_metadata = self._vault.load_all_metadata()  # TODO batching
-            all_metadata = all_metadata[:100]
+            all_metadata = all_metadata[:20]
             new_docs: List[Metadata] = []
             updated_docs: List[Tuple[DocumentInfo, Metadata]] = []
             for metadata in all_metadata:
@@ -49,7 +52,7 @@ class Indexer:
                 )
                 if not saved:
                     new_docs.append(metadata)
-                elif saved.update_date < metadata.update_date:
+                elif pytz.UTC.localize(saved.update_date) < metadata.update_date:
                     updated_docs.append((saved, metadata))
             self._build_for_updated_documents(updated_docs)
             self._build_for_new_documents(new_docs)
@@ -67,6 +70,7 @@ class Indexer:
         index = Index()
         finished_cnt = 0
         for metadata, loaded_file in self._load_file_with_multithread(all_metadata):
+            print('x')
             with loaded_file as file:
                 start_cp = time.perf_counter()
                 parser = self._parsers.get(metadata.file_type)
@@ -102,8 +106,8 @@ class Indexer:
     ):
         if not updated_docs:
             return
-        with get_db() as db:
-            crud.batch_update_docs_update_time(db, updated_docs)
+        with get_db() as session:
+            crud.batch_update_docs_update_time(session, updated_docs)
             index = self._build_index([m for _, m in updated_docs])
             self._persist_index(index, [d for d, _ in updated_docs])
 
@@ -113,8 +117,8 @@ class Indexer:
     ):
         if not new_docs:
             return
-        with get_db() as db:
-            inserted_docs = crud.add_document_metadata(db, new_docs)
+        with get_db() as session:
+            inserted_docs = crud.add_document_metadata(session, new_docs)
             index = self._build_index(new_docs)
             self._persist_index(index, inserted_docs)
 

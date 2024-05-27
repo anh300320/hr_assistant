@@ -22,7 +22,7 @@ class Vault(ABC):
             metadata: Metadata
     ) -> LoadedFile:
         start_cp = time.perf_counter()
-        result = self._download_file(metadata)
+        result = self._load(metadata)
         finish_cp = time.perf_counter()
         logging.getLogger(__name__).debug(
             "Loaded content for metadata finished, elapsed time %s",
@@ -31,7 +31,7 @@ class Vault(ABC):
         return result
 
     @abstractmethod
-    def _download_file(
+    def _load(
             self,
             metadata: Metadata
     ) -> LoadedFile:

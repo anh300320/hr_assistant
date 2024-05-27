@@ -36,7 +36,7 @@ class GoogleDrive(Vault):
             'resources'
         )
 
-    def _download_file(self, metadata: Metadata) -> LoadedFile:
+    def _load(self, metadata: Metadata) -> LoadedFile:
         os.makedirs(self._temp_dir, exist_ok=True)
         temp_fp = os.path.join(self._temp_dir, metadata.name)
         file_content = self._download_file(metadata)
@@ -63,7 +63,7 @@ class GoogleDrive(Vault):
         files = []
         folders = []
         for metadata in children:
-            if not metadata.link:
+            if not metadata.link:   # TODO use another logic to determine if this is folder or not
                 folders.append(metadata)
             else:
                 files.append(metadata)

@@ -58,7 +58,7 @@ class IndexPersistent:
             update_date_str = "na"
             if pointer.update_time:
                 update_date_str = pointer.update_time.strftime(self.DATETIME_TEMPLATE)
-            values.append(f"{pointer.doc_id}{pointer.position}|{update_date_str}")
+            values.append(f"{pointer.doc_id}|{pointer.position}|{update_date_str}")
         return self.delimiter.join(values)
 
     def parse_pointers(self, value: str) -> List[Pointer]:

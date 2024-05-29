@@ -63,7 +63,7 @@ class GoogleDrive(Vault):
         files = []
         folders = []
         for metadata in children:
-            if not metadata.link:   # TODO use another logic to determine if this is folder or not
+            if metadata.file_type == FileType.FOLDER:
                 folders.append(metadata)
             else:
                 files.append(metadata)
@@ -92,7 +92,7 @@ class GoogleDrive(Vault):
                 credentials=credentials,
                 page_size=PAGE_SIZE,
                 query=f"'{folder_id}' in parents",
-                fields="nextPageToken, files(id, name, webContentLink, mimeType, fullFileExtension, createdTime, modifiedTime)",
+                fields="nextPageToken, files(id, name, webContentLink, webViewLink, mimeType, fullFileExtension, createdTime, modifiedTime)",
                 page_token=next_page_token,
             )
             next_page_token = resp.get("nextPageToken")
@@ -105,7 +105,7 @@ class GoogleDrive(Vault):
                     name=file['name'],
                     vault_id=file['id'],
                     vault_type=self.vault_type,
-                    link=file.get('webContentLink'),
+                    link=file.get('webViewLink'),
                     file_type=file_type,
                     create_date=self._parse_date(file.get('createdTime')),
                     update_date=self._parse_date(file.get('modifiedTime'))
@@ -135,6 +135,8 @@ class GoogleDrive(Vault):
             return FileType.DOC
         if mime_type == 'application/pdf':
             return FileType.PDF
+        if mime_type == 'application/vnd.google-apps.folder':
+            return FileType.FOLDER
         return None
 
     def _load_folder_id(

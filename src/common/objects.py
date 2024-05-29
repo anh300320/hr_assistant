@@ -21,6 +21,7 @@ class FileType(Enum):
     PDF = 1
     DOC = 2
     IMAGE = 3
+    FOLDER = 4
 
 
 @dataclass

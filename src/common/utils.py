@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, date
 
 from src.common.exceptions import InternalException
 
@@ -14,3 +15,11 @@ def decode(data: bytes) -> str:
     raise InternalException(
         "Failed to decode data"
     )
+
+
+def datetime_str(dt: datetime) -> str:
+    return dt.strftime('%Y%m%d %H%M%S')
+
+
+def date_str(dt: date) -> str:
+    return dt.strftime('%Y%m%d')

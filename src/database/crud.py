@@ -85,3 +85,16 @@ def batch_update_docs_update_time(
         ]
     )
     session.commit()
+
+
+def update_doc_update_time(
+        session: Session,
+        metadata: Tuple[DocumentInfo, Metadata],
+):
+    stmt = (
+        update(DocumentInfo)
+        .where(DocumentInfo.id == metadata[0].id)
+        .values(update_date=metadata[1].update_date)
+    )
+    session.execute(stmt)
+    session.commit()

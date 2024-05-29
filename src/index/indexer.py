@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.common.disk_sentinel import DiskSentinel
 from src.common.objects import Metadata, Index
+from src.common.utils import datetime_str
 from src.database import crud
 from src.database.connection import get_db
 from src.database.models import DocumentInfo
@@ -52,7 +53,7 @@ class Indexer:
                 )
                 if not saved:
                     new_docs.append(metadata)
-                elif pytz.UTC.localize(saved.update_date) < metadata.update_date:
+                elif datetime_str(saved.update_date) < datetime_str(metadata.update_date):
                     updated_docs.append((saved, metadata))
             self._build_for_updated_documents(updated_docs)
             self._build_for_new_documents(new_docs)

@@ -7,6 +7,7 @@ from lsm import LSM
 
 from src.common.constants import INDEX_NA_VALUE
 from src.common.objects import Index
+from src.common.utils import get_current_utc
 
 
 @dataclasses.dataclass
@@ -42,10 +43,13 @@ class IndexPersistent:
                 for pointer in pointers:
                     doc_id_pos_to_pointer[pointer.doc_id, pointer.position] = pointer
                 for ref in refs:
+                    update_time = ref.metadata.update_date
+                    if update_time is None:
+                        update_time = get_current_utc()
                     doc_id_pos_to_pointer[ref.document_id, ref.position] = Pointer(
                         doc_id=ref.document_id,
                         position=ref.position,
-                        update_time=ref.metadata.update_date,
+                        update_time=update_time,
                     )
                 pointers = doc_id_pos_to_pointer.values()
                 db[key] = self._convert_to_str_value(pointers)
@@ -56,9 +60,7 @@ class IndexPersistent:
     ) -> str:
         values = []
         for pointer in pointers:
-            update_date_str = INDEX_NA_VALUE
-            if pointer.update_time:
-                update_date_str = pointer.update_time.strftime(self.DATETIME_TEMPLATE)
+            update_date_str = pointer.update_time.strftime(self.DATETIME_TEMPLATE)
             values.append(f"{pointer.doc_id}|{pointer.position}|{update_date_str}")
         return self.delimiter.join(values)
 
@@ -71,12 +73,10 @@ class IndexPersistent:
                 doc_id, position, update_time_str = values
                 doc_id = int(doc_id)
                 position = int(position)
-                update_time = None
-                if update_time_str != INDEX_NA_VALUE:
-                    update_time = datetime.strptime(
-                        update_time_str,
-                        self.DATETIME_TEMPLATE,
-                    )
+                update_time = datetime.strptime(
+                    update_time_str,
+                    self.DATETIME_TEMPLATE,
+                )
                 pointers.append(
                     Pointer(
                         doc_id=doc_id,

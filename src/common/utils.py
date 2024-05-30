@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, date
 
+import pytz
+
 from src.common.exceptions import InternalException
 
 
@@ -23,3 +25,9 @@ def datetime_str(dt: datetime) -> str:
 
 def date_str(dt: date) -> str:
     return dt.strftime('%Y%m%d')
+
+
+def get_current_utc() -> datetime:
+    now = datetime.utcnow()
+    utc = pytz.UTC
+    return utc.localize(now)

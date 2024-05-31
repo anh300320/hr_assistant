@@ -133,6 +133,8 @@ class GoogleDrive(Vault):
             return FileType.DOC
         if mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
             return FileType.DOC
+        if mime_type == 'application/vnd.google-apps.document':
+            return FileType.DOC
         if mime_type == 'application/pdf':
             return FileType.PDF
         if mime_type == 'application/vnd.google-apps.folder':
@@ -230,7 +232,7 @@ class GoogleDrive(Vault):
     def _download_file(
             self,
             metadata: Metadata,
-    ) -> bytes:
+    ) -> bytes:     # TODO download file that created on Google Drive
         creds = self._auth()
         try:
             service = build("drive", "v3", credentials=creds)

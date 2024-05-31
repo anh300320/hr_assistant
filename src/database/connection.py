@@ -12,10 +12,12 @@ SessionLocal = scoped_session(sessionmaker(autoflush=True))
 
 
 @contextmanager
-def get_db():
+def get_db(auto_commit=True):
     session = SessionLocal
     try:
         yield session
+        if auto_commit:
+            session.commit()
     except:
         session.rollback()
         raise

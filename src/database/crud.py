@@ -24,7 +24,6 @@ def add_document_metadata(session: Session, metadatas: List[Metadata]) -> List[D
         )
         batch.append(obj)
     session.add_all(batch)
-    session.commit()
     logging.getLogger(__name__).info(
         "Inserted %s metadatas to db",
         len(batch)
@@ -53,7 +52,7 @@ def get_document(
         vault_id: str,
         vault_type: VaultType,
 ) -> Optional[DocumentInfo]:
-    with get_db() as db:
+    with get_db(auto_commit=False) as db:
         stmt = (
             select(DocumentInfo)
             .where(
@@ -69,19 +68,9 @@ def batch_update_docs_update_time(
         session: Session,
         metadatas: List[Tuple[DocumentInfo, Metadata]],
 ):
-    stmt = (
-        update(DocumentInfo)
-        .where(DocumentInfo.id == bindparam("_id"))
-        .values(
-            {
-                "update_date": bindparam("_update_time")
-            }
-        )
-    )
-    session.execute(
-        stmt,
+    session.bulk_update_mappings(
+        DocumentInfo,
         [
-            {'_id': d.id, '_update_time': m.update_date} for d, m in metadatas
+            {'id': d.id, 'update_date': m.update_date} for d, m in metadatas
         ]
     )
-    session.commit()

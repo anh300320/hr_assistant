@@ -14,8 +14,8 @@ class SemanticTokenize(Tokenizer):
             self,
             text: str,
     ) -> list[Token]:
+        text = self._remove_all_chars_except_alnum(text)
         text = text.lower()
-        # truncated_text = self._filter_out_special_char(text)
         return self._dp(text)
 
     def _dp(
@@ -54,7 +54,7 @@ class SemanticTokenize(Tokenizer):
             last_pos = trace[last_pos]
         tokens = list(reversed(tokens))
         for i, token in enumerate(tokens):
-            token.position = i
+            token.position = token.position - len(token.text)
         return tokens
 
     def _filter_out_special_char(self, text: str) -> str:

@@ -1,4 +1,5 @@
 import os.path
+import re
 
 from nltk import wordpunct_tokenize
 
@@ -7,8 +8,8 @@ from src.common.objects import Token
 
 class Tokenizer:
     def tokenize(self, text: str) -> list[Token]:
-        words = wordpunct_tokenize(text)
-        tokens = self._convert_words_to_tokens(words)
+        text = self._remove_all_chars_except_alnum(text)
+        tokens = self._extract_tokens(text)
         new_tokens = self._tokens_candidate_by_middle_uppercase(tokens)
         tokens.extend(new_tokens)
         return tokens
@@ -23,7 +24,7 @@ class Tokenizer:
             for w in new_words:
                 tokens.append(
                     Token(
-                        text=w,
+                        text=w.lower(),
                         position=token.position,
                     )
                 )
@@ -49,16 +50,33 @@ class Tokenizer:
             new_tokens.append(token[split_positions[i-1]:split_positions[i]])
         return new_tokens
 
-    def _convert_words_to_tokens(
+    def _remove_all_chars_except_alnum(
             self,
-            words: list[str],
+            text: str,
+    ):
+        # text = re.sub(r'[^A-Za-z0-9]', ' ', text)
+        normalized_text = ''
+        for ch in text:
+            if not ch.isalnum():
+                normalized_text += ' '
+            else:
+                normalized_text += ch
+        normalized_text = re.sub(r'\s+', ' ', normalized_text)
+        return normalized_text
+
+    def _extract_tokens(
+            self,
+            text: str,
     ) -> list[Token]:
+        words = text.split(' ')
         tokens: list[Token] = []
+        current_len = 0
         for i, word in enumerate(words):
             tokens.append(
                 Token(
-                    text=word,
-                    position=i,
+                    text=word.lower(),
+                    position=current_len,
                 )
             )
+            current_len += 1 + len(word)
         return tokens

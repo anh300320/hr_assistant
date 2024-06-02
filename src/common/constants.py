@@ -1,0 +1,1 @@
+INDEX_NA_VALUE = "NA"

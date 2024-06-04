@@ -55,17 +55,17 @@ class Retriever:
             word_tail_link = self.build_word_tail_link(occurrences)
             f = [[False] * len(search_entry.words) for _ in range(len(occurrences))]
             for i, oc in enumerate(occurrences):
-                for distance in KEYS_DISTANCE:
-                    tail = oc.start - distance
-                    if tail not in word_tail_link:
+                for key in oc.match_keys:
+                    if key == 0:
+                        f[i][key] = True
                         continue
-                    links = word_tail_link[tail]
-                    for link in links:
-                        prev = occurrences[link]
-                        for key in oc.match_keys:
-                            if key == 0:
-                                f[i][key] = True
-                                continue
+                    for distance in KEYS_DISTANCE:
+                        tail = oc.start - distance
+                        if tail not in word_tail_link:
+                            continue
+                        links = word_tail_link[tail]
+                        for link in links:
+                            prev = occurrences[link]
                             if (key - 1) in prev.match_keys:
                                 f[i][key] = f[link][key - 1] or f[i][key]
 

@@ -43,7 +43,7 @@ class Indexer:
     def run(self):
         try:
             all_metadata = self._vault.load_all_metadata()  # TODO batching
-            all_metadata = all_metadata[20:30]
+            all_metadata = all_metadata[:30]
             new_docs: List[Metadata] = []
             updated_docs: List[Tuple[DocumentInfo, Metadata]] = []
             for metadata in all_metadata:
@@ -117,7 +117,7 @@ class Indexer:
     ):
         if not new_docs:
             return
-        with get_db() as session:
+        with get_db(auto_commit=False) as session:
             inserted_docs = crud.add_document_metadata(session, new_docs)
             index = self._build_index(new_docs)
             self._persist_index(index, inserted_docs)

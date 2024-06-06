@@ -1,22 +1,15 @@
 import os.path
 
-import pytesseract
-from PIL import Image
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from lsm import LSM
-
 from src.common.disk_sentinel import DiskSentinel
 from src.common.logging import init_logging
+from src.database import crud
 from src.database.connection import init_database
 from src.index.index_persist import IndexPersistent
 from src.index.indexer import Indexer
 from src.parsers.doc_parser import DocParser
-from src.parsers.image_parser import ImageParser
 from src.parsers.pdf_parser import PdfParser
+from src.search.objects import SearchEntry
+from src.search.retriever import Retriever
 from src.tokenizer.base import Tokenizer
 from src.tokenizer.semantic import SemanticTokenize
 from src.vault.google_drive import GoogleDrive
@@ -53,12 +46,20 @@ def main():
         index_persistent,
         disk_sentinel
     )
-    indexer.run()
+    # indexer.run()
 
-    # with LSM(os.path.join("temp", "index.lsm"), binary=False) as db:
-    #     x = db['pháp']
-    #     print(x)
-
+    retriever = Retriever(index_persistent)
+    search_entry = SearchEntry(words=["excel"])
+    doc_ids = retriever.get(search_entry)
+    docs = []
+    for doc_id in doc_ids:
+        doc = crud.get_doc_by_id(doc_id)
+        docs.append(doc)
+    uniq = set()
+    for d in docs:
+        uniq.add(d.path)
+    for l in uniq:
+        print(l)
 
 
 if __name__ == "__main__":

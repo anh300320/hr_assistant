@@ -24,6 +24,9 @@ def add_document_metadata(session: Session, metadatas: List[Metadata]) -> List[D
         )
         batch.append(obj)
     session.add_all(batch)
+    session.commit()
+    for obj in batch:
+        session.refresh(obj)
     logging.getLogger(__name__).info(
         "Inserted %s metadatas to db",
         len(batch)
@@ -58,6 +61,20 @@ def get_document(
             .where(
                 DocumentInfo.vault_type == models.VaultType(vault_type.value),
                 DocumentInfo.vault_id == vault_id
+            )
+        )
+        row = db.execute(stmt).scalars().first()
+        return row
+
+
+def get_doc_by_id(
+        doc_id: int
+) -> DocumentInfo:
+    with get_db(auto_commit=False) as db:
+        stmt = (
+            select(DocumentInfo)
+            .where(
+                DocumentInfo.id == doc_id
             )
         )
         row = db.execute(stmt).scalars().first()

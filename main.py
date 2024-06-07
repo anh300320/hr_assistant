@@ -1,5 +1,10 @@
 import os.path
 
+import jaro
+import py4Soundex.code
+import soundex
+from py4Soundex.code import Soundex
+
 from src.common.disk_sentinel import DiskSentinel
 from src.common.logging import init_logging
 from src.database import crud
@@ -11,7 +16,7 @@ from src.parsers.pdf_parser import PdfParser
 from src.search.objects import SearchEntry
 from src.search.retriever import Retriever
 from src.tokenizer.base import Tokenizer
-from src.tokenizer.semantic import SemanticTokenize
+from src.tokenizer.normalizer import LemmingNormalizer
 from src.vault.google_drive import GoogleDrive
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
@@ -24,7 +29,7 @@ def main():
         "google_drive_folder": "TEST_CV",
       }
     tokenizers = [
-        SemanticTokenize({}),
+        # SemanticTokenize({}),
         Tokenizer()
     ]
     parsers = [
@@ -37,11 +42,13 @@ def main():
             'index_fp': os.path.join("temp", "index.lsm")
         }
     )
+    normalizers = [LemmingNormalizer()]
     disk_sentinel = DiskSentinel(config)
     indexer = Indexer(
         "",
         vault,
         tokenizers,
+        normalizers,
         parsers,
         index_persistent,
         disk_sentinel
@@ -49,7 +56,7 @@ def main():
     # indexer.run()
 
     retriever = Retriever(index_persistent)
-    search_entry = SearchEntry(words=["excel"])
+    search_entry = SearchEntry(words=["Diplomatic", "Academy", "of", "Vietnam"])
     doc_ids = retriever.get(search_entry)
     docs = []
     for doc_id in doc_ids:

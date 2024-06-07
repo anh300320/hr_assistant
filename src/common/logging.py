@@ -18,6 +18,7 @@ def init_logging() -> None:
         mode="a",
         maxBytes=1024 * 1024 * 1024 * 2,
         backupCount=10,
+        encoding='utf8',
     )
     file_handler.setLevel(logging.DEBUG)
 

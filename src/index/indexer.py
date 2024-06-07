@@ -15,6 +15,7 @@ from src.database.models import DocumentInfo
 from src.index.index_persist import IndexPersistent
 from src.parsers.base import Parser
 from src.tokenizer.base import Tokenizer
+from src.tokenizer.normalizer import Normalizer
 from src.vault.base import Vault
 
 
@@ -25,6 +26,7 @@ class Indexer:
             last_updated_fp: str,
             vault: Vault,
             tokenizers: list[Tokenizer],
+            normalizers: List[Normalizer],
             parsers: list[Parser],
             index_persistent: IndexPersistent,
             disk_sentinel: DiskSentinel,
@@ -32,6 +34,7 @@ class Indexer:
         self._last_updated_fp = last_updated_fp     # TODO
         self._vault = vault
         self._tokenizers = tokenizers
+        self._normalizers = normalizers
         self._threadpool_size = 2
         self._parsers: dict[str, Parser] = {}
         for parser in parsers:
@@ -43,7 +46,7 @@ class Indexer:
     def run(self):
         try:
             all_metadata = self._vault.load_all_metadata()  # TODO batching
-            all_metadata = all_metadata[:30]
+            # all_metadata = all_metadata[:30]
             new_docs: List[Metadata] = []
             updated_docs: List[Tuple[DocumentInfo, Metadata]] = []
             for metadata in all_metadata:
@@ -83,10 +86,18 @@ class Indexer:
                 logging.getLogger(__name__).info(
                     "Processing file %s", metadata
                 )
-                content = parser.parse(file)
-                for tokenizer in self._tokenizers:
-                    tokens = tokenizer.tokenize(content)
+                try:
+                    content = parser.parse(file)
+                    tokens = []
+                    for tokenizer in self._tokenizers:
+                        tokens.extend(tokenizer.tokenize(content))
+                    for normalizer in self._normalizers:
+                        tokens = normalizer.normalize(tokens)
                     index.update(tokens, metadata)
+                except Exception as e:
+                    logging.getLogger(__name__).exception(
+                        f"Failed to parse file {metadata}"
+                    )
                 finish_cp = time.perf_counter()
             finished_cnt += 1
             logging.getLogger(__name__).info(
@@ -117,7 +128,7 @@ class Indexer:
     ):
         if not new_docs:
             return
-        with get_db(auto_commit=False) as session:
+        with get_db(auto_commit=True) as session:
             inserted_docs = crud.add_document_metadata(session, new_docs)
             index = self._build_index(new_docs)
             self._persist_index(index, inserted_docs)

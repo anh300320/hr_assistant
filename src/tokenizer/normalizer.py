@@ -1,50 +1,46 @@
 from abc import ABC, abstractmethod
+from typing import Iterable, List, Set
+
+import nltk
+from nltk.stem import WordNetLemmatizer
+from src.common.objects import Token
 
 
 class Normalizer(ABC):
     @abstractmethod
-    def normalize(self, tokens: list[str]):
+    def normalize(self, tokens: List[Token]) -> List[Token]:
         raise NotImplementedError
 
 
-class NormalizeChain:
-    def __init__(
+class LemmingNormalizer(Normalizer):
+    def __init__(self):
+        nltk.download('wordnet')    # TODO find away to pre-download and put it to resources
+        self._lemmatizer = WordNetLemmatizer()
+
+    def normalize(
             self,
-            normalizers: list[Normalizer],
-    ):
-        self._normalizers = normalizers
+            tokens: List[Token],
+    ) -> List[Token]:
 
-    def pass_through(self, tokens: list[str]) -> list[str]:
-        for normalizer in self._normalizers:
-            tokens = normalizer.normalize(tokens)
-        return tokens
+        def add_token(
+                all_tokens: List[Token],
+                uniq: Set[str],
+                tk: Token
+        ):
+            if tk.text in uniq:
+                return
+            uniq.add(tk.text)
+            all_tokens.append(tk)
 
-
-class ToLowerCase(Normalizer):
-    def normalize(self, tokens: list[str]) -> list[str]:
-        normalized_tokens = []
+        result = []
         for token in tokens:
-            normalized_tokens.append(token.lower())
-        return normalized_tokens
-
-
-class TokenRefiner(Normalizer):
-
-    def __init__(
-            self,
-            config,
-    ):
-        self._supported_langs = config['supported_langs']
-        self._dictionary_filepaths = []
-        for lang in self._supported_langs:
-            self._dictionary_filepaths.append(config['dictionary_tmpl'].format(lang=lang))
-
-    def normalize(self, tokens: list[str]):
-        for dictionary_fp in self._dictionary_filepaths:
-            self._normalize_with_dictionary(dictionary_fp)
-
-    def _normalize_with_dictionary(self, dictionary_fp: str):
-        all_words = set()
-        with open(dictionary_fp) as fd:
-            for word in fd.readlines():
-                word = word.strip()
+            uniq_words = set()
+            result.append(token)
+            uniq_words.add(token.text)
+            noun = self._lemmatizer.lemmatize(word=token.text, pos="n")
+            noun_tk = Token(text=noun, position=token.position)
+            verb = self._lemmatizer.lemmatize(word=token.text, pos="v")
+            verb_tk = Token(text=verb, position=token.position)
+            add_token(result, uniq_words, noun_tk)
+            add_token(result, uniq_words, verb_tk)
+        return result

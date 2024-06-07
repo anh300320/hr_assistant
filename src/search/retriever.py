@@ -47,6 +47,7 @@ class Retriever:
         :param search_entry:
         :return: list of document_id
         """
+        search_entry = self._normalize_search_entry(search_entry)
         doc_candidates = self._build_doc_candidates(search_entry)
         accepted_candidates = []
         for doc_id, candidate in doc_candidates.items():
@@ -133,3 +134,9 @@ class Retriever:
         for pointers in doc_to_pointers.values():
             cleaned_pointers.extend(filter_outdated_pointers(pointers))
         return cleaned_pointers
+
+    def _normalize_search_entry(self, search_entry: SearchEntry):
+        normalized = SearchEntry()
+        for word in search_entry.words:
+            normalized.words.append(word.lower())
+        return normalized

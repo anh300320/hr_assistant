@@ -24,7 +24,7 @@ def add_document_metadata(session: Session, metadatas: List[Metadata]) -> List[D
         )
         batch.append(obj)
     session.add_all(batch)
-    session.commit()
+    session.flush()
     for obj in batch:
         session.refresh(obj)
     logging.getLogger(__name__).info(
@@ -91,3 +91,4 @@ def batch_update_docs_update_time(
             {'id': d.id, 'update_date': m.update_date} for d, m in metadatas
         ]
     )
+    session.flush()

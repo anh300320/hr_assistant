@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from src.common.objects import Metadata, VaultType
 from src.database import models
 from src.database.connection import get_db
-from src.database.models import DocumentInfo
-from sqlalchemy import select, update, bindparam
+from src.database.models import DocumentInfo, TrackedFolder
+from sqlalchemy import select
 
 
 def add_document_metadata(session: Session, metadatas: List[Metadata]) -> List[DocumentInfo]:
@@ -92,3 +92,21 @@ def batch_update_docs_update_time(
         ]
     )
     session.flush()
+
+
+def add_tracked_folder(folder: Metadata):
+    with get_db() as db:
+        tracked_folder = TrackedFolder(
+            name=folder.name,
+            vault_id=folder.vault_id,
+            vault_type=models.VaultType(folder.vault_type.value),
+            path=folder.link,
+            create_date=folder.update_date,
+            update_date=folder.create_date,
+        )
+        db.add(tracked_folder)
+        db.flush()
+        db.commit()
+        logging.getLogger(__name__).info(
+            "Added tracked folder %s", folder.name
+        )

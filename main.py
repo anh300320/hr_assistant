@@ -3,6 +3,7 @@ import os.path
 import jaro
 import py4Soundex.code
 import soundex
+import webview
 from py4Soundex.code import Soundex
 
 from src.common.disk_sentinel import DiskSentinel
@@ -20,6 +21,12 @@ from src.tokenizer.normalizer import LemmingNormalizer
 from src.vault.google_drive import GoogleDrive
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+
+
+class Api():
+  def log(self, value):
+    print(value)
+
 
 
 def main():
@@ -53,20 +60,21 @@ def main():
         index_persistent,
         disk_sentinel
     )
-    # indexer.run()
+    folders = vault.search_folder_by_name("test_cv")
+    print(folders)
 
-    retriever = Retriever(index_persistent)
-    search_entry = SearchEntry(words=["Diplomatic", "Academy", "of", "Vietnam"])
-    doc_ids = retriever.get(search_entry)
-    docs = []
-    for doc_id in doc_ids:
-        doc = crud.get_doc_by_id(doc_id)
-        docs.append(doc)
-    uniq = set()
-    for d in docs:
-        uniq.add(d.path)
-    for l in uniq:
-        print(l)
+    # retriever = Retriever(index_persistent)
+    # search_entry = SearchEntry(words=["Diplomatic", "Academy", "of", "Vietnam"])
+    # doc_ids = retriever.get(search_entry)
+    # docs = []
+    # for doc_id in doc_ids:
+    #     doc = crud.get_doc_by_id(doc_id)
+    #     docs.append(doc)
+    # uniq = set()
+    # for d in docs:
+    #     uniq.add(d.path)
+    # for l in uniq:
+    #     print(l)
 
 
 if __name__ == "__main__":

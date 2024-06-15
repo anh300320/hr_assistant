@@ -1,9 +1,10 @@
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 from src.common.objects import Metadata, LoadedFile, VaultType
+from src.database.models import TrackedFolder
 
 
 class Vault(ABC):
@@ -14,7 +15,10 @@ class Vault(ABC):
         self._vault_root: Optional[str] = None
 
     @abstractmethod
-    def load_all_metadata(self) -> list[Metadata]:
+    def load_all_tracked_files(
+            self,
+            tracked_folders: List[Metadata]
+    ) -> list[Metadata]:
         raise NotImplementedError
 
     def load_content(

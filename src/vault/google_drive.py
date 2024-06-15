@@ -4,7 +4,7 @@ import os
 import random
 import time
 from datetime import datetime
-from typing import Optional, Union
+from typing import Optional, Union, List, Tuple
 
 import requests
 from google.auth.transport.requests import Request
@@ -16,6 +16,7 @@ from googleapiclient.http import MediaIoBaseDownload
 
 from src.common.exceptions import InternalException
 from src.common.objects import LoadedFile, LoadedFileType, VaultType, FileType
+from src.database.models import TrackedFolder
 from src.vault.base import Vault, Metadata
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
@@ -29,12 +30,12 @@ class GoogleDrive(Vault):
 
     def __init__(self, config):
         super().__init__(config)
-        self._vault_root = config.get('google_drive_folder', None)
         self._temp_dir = config.get('temp_dir', 'google_drive_temp')
         self._google_credential_dir = config.get(
             'google_credential_dir',
             'resources'
         )
+        self._next_page_token = None
 
     def _load(self, metadata: Metadata) -> LoadedFile:
         os.makedirs(self._temp_dir, exist_ok=True)
@@ -47,19 +48,29 @@ class GoogleDrive(Vault):
             content=temp_fp
         )
 
-    def load_all_metadata(self) -> list[Metadata]:
-        folder_id = self._load_folder_id(self._vault_root)
-        logging.getLogger(__name__).info(
-            "Getting files in folder %s", self._vault_root
-        )
-        list_files = self._load_all_files_in_folder_recursive(folder_id)
-        return list_files
+    def load_all_tracked_files(
+            self,
+            tracked_folders: List[Metadata]
+    ) -> list[Metadata]:
+        all_tracked_files: List[Metadata] = []
+        for folder in tracked_folders:
+            try:
+                logging.getLogger(__name__).info(
+                    "Getting files in folder %s", folder.name
+                )
+                list_files = self._load_all_files_in_folder_recursive(folder)
+                all_tracked_files.extend(list_files)
+            except Exception:
+                logging.getLogger(__name__).exception(
+                    "Failed to get all files from tracked folder %s", folder
+                )
+        return all_tracked_files
 
     def _load_all_files_in_folder_recursive(
             self,
-            folder_id: str,
+            folder: Metadata,
     ) -> list[Metadata]:
-        children = self._load_children(folder_id)
+        children = self._load_all_children(folder)
         files = []
         folders = []
         for metadata in children:
@@ -72,15 +83,13 @@ class GoogleDrive(Vault):
                 "Getting children of folder %s",
                 folder.name
             )
-            nested_files = self._load_all_files_in_folder_recursive(
-                folder.vault_id
-            )
+            nested_files = self._load_all_files_in_folder_recursive(folder)
             files.extend(nested_files)
         return files
 
-    def _load_children(
+    def _load_all_children(
             self,
-            folder_id: str,
+            folder: Metadata,
     ) -> list[Metadata]:
         credentials = self._auth()
         first_try = True
@@ -91,26 +100,11 @@ class GoogleDrive(Vault):
             resp = self._list_file(
                 credentials=credentials,
                 page_size=PAGE_SIZE,
-                query=f"'{folder_id}' in parents",
+                query=f"'{folder.vault_id}' in parents",
                 fields="nextPageToken, files(id, name, webContentLink, webViewLink, mimeType, fullFileExtension, createdTime, modifiedTime)",
                 page_token=next_page_token,
             )
-            next_page_token = resp.get("nextPageToken")
-            for file in resp.get("files", []):
-                file_type = self._parse_extension(
-                    extension=file.get('fullFileExtension'),
-                    mime_type=file.get('mimeType')
-                )
-                metadata = Metadata(
-                    name=file['name'],
-                    vault_id=file['id'],
-                    vault_type=self.vault_type,
-                    link=file.get('webViewLink'),
-                    file_type=file_type,
-                    create_date=self._parse_date(file.get('createdTime')),
-                    update_date=self._parse_date(file.get('modifiedTime'))
-                )
-                metadatas.append(metadata)
+
         return metadatas
 
     def _parse_date(self, dt_str: str) -> Optional[datetime]:
@@ -141,29 +135,17 @@ class GoogleDrive(Vault):
             return FileType.FOLDER
         return None
 
-    def _load_folder_id(
+    def search_folder_by_name(
             self,
             folder_name: str
-    ) -> str:
+    ) -> List[Metadata]:
         credentials = self._auth()
-        resp = self._list_file(
+        folders, _ = self._list_file(
             credentials=credentials,
             page_size=20,
             query=f"mimeType='application/vnd.google-apps.folder' and name = '{folder_name}'"
         )
-        folders = resp.get("files", [])
-        if len(folders) == 0:
-            raise InternalException(
-                f"Folder not found {self._vault_root}"
-            )
-        elif len(folders) > 1:
-            for folder in folders:
-                if folder["name"] == folder_name:
-                    return folder['id']
-            raise InternalException(
-                f"Unexpected number of folder found {folders}",
-            )
-        return folders[0]['id']
+        return folders
 
     def _list_file(
             self,
@@ -172,13 +154,15 @@ class GoogleDrive(Vault):
             fields: str = "nextPageToken, files(id, name)",
             query: Optional[str] = None,
             page_token: Optional[str] = None,
-    ):
+    ) -> Tuple[List[Metadata], str]:
         for i in range(RETRY):
             try:
+                metadatas = []
                 service = build("drive", "v3", credentials=credentials)
-                results = (
+                resp = (
                     service.files()
                     .list(
+                        corpora='user',
                         q=query,
                         pageSize=page_size,
                         fields=fields,
@@ -186,7 +170,23 @@ class GoogleDrive(Vault):
                     )
                     .execute()
                 )
-                return results
+                next_page_token = resp.get("nextPageToken")
+                for file in resp.get("files", []):
+                    file_type = self._parse_extension(
+                        extension=file.get('fullFileExtension'),
+                        mime_type=file.get('mimeType')
+                    )
+                    metadata = Metadata(
+                        name=file['name'],
+                        vault_id=file['id'],
+                        vault_type=self.vault_type,
+                        link=file.get('webViewLink'),
+                        file_type=file_type,
+                        create_date=self._parse_date(file.get('createdTime')),
+                        update_date=self._parse_date(file.get('modifiedTime'))
+                    )
+                    metadatas.append(metadata)
+                return metadatas, next_page_token
             except HttpError as error:
                 logging.getLogger(__name__).exception(
                     "Failed to query files, retrying..."
@@ -217,13 +217,12 @@ class GoogleDrive(Vault):
             creds = Credentials.from_authorized_user_file(token_fp, SCOPES)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    credentials_fp, SCOPES
-                )
-                creds = flow.run_local_server(port=0)
+            if os.path.exists(token_fp):
+                os.remove(token_fp)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                credentials_fp, SCOPES
+            )
+            creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open(token_fp, "w") as token:
                 token.write(creds.to_json())

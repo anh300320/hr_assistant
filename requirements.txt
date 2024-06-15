@@ -8,3 +8,4 @@ pypdf==4.2.0
 SQLAlchemy==2.0.30
 lsm==0.5.4
 pytz==2024.1
+customtkinter==5.2.2

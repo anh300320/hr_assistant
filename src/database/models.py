@@ -24,3 +24,14 @@ class DocumentInfo(Base):
     path: Mapped[str]
     create_date = mapped_column(DATETIME)
     update_date = mapped_column(DATETIME)
+
+
+class TrackedFolder(Base):
+    __tablename__ = "tracked_folder"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    vault_id: Mapped[str]
+    name: Mapped[str]
+    vault_type: Mapped[VaultType] = mapped_column(Enum(VaultType))
+    path: Mapped[str]
+    create_date = mapped_column(DATETIME)
+    update_date = mapped_column(DATETIME)

@@ -31,7 +31,6 @@ class Indexer:
             index_persistent: IndexPersistent,
             disk_sentinel: DiskSentinel,
     ):
-        self._last_updated_fp = last_updated_fp     # TODO
         self._vault = vault
         self._tokenizers = tokenizers
         self._normalizers = normalizers
@@ -45,7 +44,7 @@ class Indexer:
 
     def run(self):
         try:
-            all_metadata = self._vault.load_all_metadata()  # TODO batching
+            all_metadata = self._vault.load_all_tracked_files()  # TODO batching
             # all_metadata = all_metadata[:30]
             new_docs: List[Metadata] = []
             updated_docs: List[Tuple[DocumentInfo, Metadata]] = []

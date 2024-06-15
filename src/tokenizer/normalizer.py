@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Set
+from typing import List, Set
 
 import nltk
 from nltk.stem import WordNetLemmatizer

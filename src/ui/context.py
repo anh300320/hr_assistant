@@ -20,3 +20,6 @@ class Context:
     def _notify(self):
         for sub in self._subscribers:
             sub.on_ctx_change()
+
+    def main_view(self):
+        return self._main_view

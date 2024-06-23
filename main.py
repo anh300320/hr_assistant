@@ -18,6 +18,9 @@ from src.search.objects import SearchEntry
 from src.search.retriever import Retriever
 from src.tokenizer.base import Tokenizer
 from src.tokenizer.normalizer import LemmingNormalizer
+from src.ui.app import AppUI
+from src.ui.context import Context
+from src.ui.sidebar.sidebar import Sidebar
 from src.vault.google_drive import GoogleDrive
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
@@ -77,5 +80,14 @@ def main():
     #     print(l)
 
 
+def test_ui():
+    init_logging()
+    ui_context = Context()
+    app = AppUI(ui_context)
+    sidebar = Sidebar(app, context=ui_context)
+    ui_context.add_subscriber(subscriber=app)
+    app.mainloop()
+
+
 if __name__ == "__main__":
-    main()
+    test_ui()

@@ -82,10 +82,8 @@ def main():
 
 def test_ui():
     init_logging()
-    ui_context = Context()
-    app = AppUI(ui_context)
-    sidebar = Sidebar(app, context=ui_context)
-    ui_context.add_subscriber(subscriber=app)
+    config = {}
+    app = AppUI(config)
     app.mainloop()
 
 

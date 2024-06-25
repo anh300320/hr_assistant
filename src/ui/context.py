@@ -1,5 +1,6 @@
 from typing import List
 
+from src.common.objects import Metadata
 from src.ui.interfaces.subscribers.ctx_subscriber import ContextSubscriber
 
 
@@ -7,19 +8,16 @@ class Context:
     def __init__(
             self,
     ):
-        self._main_view = "Home"
-        self._subscribers = []
+        self.data = {}
+        self._subscribers: List[ContextSubscriber] = []
 
     def add_subscriber(self, subscriber: ContextSubscriber):
         self._subscribers.append(subscriber)
 
-    def change_main_view(self, view):
-        self._main_view = view
+    def update_key(self, key, value):
+        self.data[key] = value
         self._notify()
 
     def _notify(self):
         for sub in self._subscribers:
             sub.on_ctx_change()
-
-    def main_view(self):
-        return self._main_view

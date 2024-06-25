@@ -137,13 +137,18 @@ class GoogleDrive(Vault):
 
     def search_folder_by_name(
             self,
-            folder_name: str
+            folder_name: str,
+            full_match: bool = True,
     ) -> List[Metadata]:
+        if full_match:
+            condition = "="
+        else:
+            condition = "contains"
         credentials = self._auth()
         folders, _ = self._list_file(
             credentials=credentials,
             page_size=20,
-            query=f"mimeType='application/vnd.google-apps.folder' and name = '{folder_name}'"
+            query=f"mimeType='application/vnd.google-apps.folder' and name {condition} '{folder_name}'"
         )
         return folders
 

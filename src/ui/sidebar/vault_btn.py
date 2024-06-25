@@ -25,4 +25,4 @@ class VaultButton(CTkButton):
             "Clicked Button %s",
             self._vault_type.name,
         )
-        self._context.change_main_view(self._vault_type.name)
+        self._context.update_key("vault_type", self._vault_type.name)

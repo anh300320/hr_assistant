@@ -148,7 +148,8 @@ class GoogleDrive(Vault):
         folders, _ = self._list_file(
             credentials=credentials,
             page_size=20,
-            query=f"mimeType='application/vnd.google-apps.folder' and name {condition} '{folder_name}'"
+            query=f"mimeType='application/vnd.google-apps.folder' and name {condition} '{folder_name}'",
+            fields="nextPageToken, files(id, name, webContentLink, webViewLink, mimeType, fullFileExtension, createdTime, modifiedTime)"
         )
         return folders
 

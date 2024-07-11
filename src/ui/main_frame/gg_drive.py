@@ -7,6 +7,7 @@ from customtkinter import CTkScrollableFrame
 
 from src.ui.context import Context
 from src.ui.interfaces.subscribers.ctx_subscriber import ContextSubscriber
+from src.ui.list_view.list_container import ListContainer
 from src.vault.google_drive import GoogleDrive
 
 
@@ -28,7 +29,8 @@ class GoogleDriveFrame(customtkinter.CTkFrame, ContextSubscriber):
         self._search_bar.bind("<Return>", self.enter_search_folder)
         self._search_bar.grid(row=0, column=0, padx=10, pady=(10, 10), sticky="new")
         self._vault = GoogleDrive(config)
-        self.list_box = None
+        self._list_folders = ListContainer(self)
+        self._list_folders.grid(row=1, column=0, padx=10, pady=(10, 10), sticky="nsew")
         # self._context.add_subscriber()
 
     def show(self):
@@ -40,11 +42,12 @@ class GoogleDriveFrame(customtkinter.CTkFrame, ContextSubscriber):
             folder_name=search_value,
             full_match=False,
         )
-        self.list_box = CTkListbox(self, command=self.add_folder_to_track_list)
-        for i, folder in enumerate(candidates):
-            self.list_box.option_add(i, folder.name)
-        self.list_box.grid(row=1, column=0, padx=10, pady=(10, 10), sticky="nsew")
-        # self.list_box.s
+        candidates = candidates[:5]
+        self._list_folders.clear_items()
+        self._list_folders.add_items(candidates)
+        logging.getLogger(__name__).info(
+            "Got candidates %s", candidates
+        )
         return candidates
 
     def add_folder_to_track_list(self, selected_option):

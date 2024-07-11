@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import customtkinter
+import pytz
 
 
 def get_time_since(start_date: datetime, prefix: str):
-    now = datetime.now()
+    now = datetime.now(tz=pytz.UTC)
     days_since_created = now - start_date
     if days_since_created <= timedelta(days=7):
         dd = "days"

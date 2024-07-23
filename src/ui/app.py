@@ -26,5 +26,5 @@ class AppUI(customtkinter.CTk, ContextSubscriber):
 
     def on_ctx_change(self):
         logging.getLogger(__name__).info("Change App UI")
-        if self._context.data['vault_type'] == VaultType.GOOGLE_DRIVE.name:
+        if self._context._data['vault_type'] == VaultType.GOOGLE_DRIVE.name:
             self._gg_drive_main_fr.show()

@@ -22,7 +22,7 @@ class ListContainer(customtkinter.CTkFrame):
                 metadata.create_date,
                 metadata.update_date
             )
-            item.grid(row=i, column=0, padx=10, pady=(10, 10), sticky="nsew")
+            item.grid(row=i, column=0, padx=10, pady=(10, 10), sticky="new")
             self._items.append(item)
 
     def clear_items(self):

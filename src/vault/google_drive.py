@@ -139,19 +139,22 @@ class GoogleDrive(Vault):
             self,
             folder_name: str,
             full_match: bool = True,
-    ) -> List[Metadata]:
+            page_size: int = 5,
+            page_token: Optional[str] = None,
+    ) -> Tuple[List[Metadata], str]:
         if full_match:
             condition = "="
         else:
             condition = "contains"
         credentials = self._auth()
-        folders, _ = self._list_file(
+        folders, next_page_token = self._list_file(
             credentials=credentials,
-            page_size=20,
+            page_size=page_size,
             query=f"mimeType='application/vnd.google-apps.folder' and name {condition} '{folder_name}'",
-            fields="nextPageToken, files(id, name, webContentLink, webViewLink, mimeType, fullFileExtension, createdTime, modifiedTime)"
+            fields="nextPageToken, files(id, name, webContentLink, webViewLink, mimeType, fullFileExtension, createdTime, modifiedTime)",
+            page_token=page_token,
         )
-        return folders
+        return folders, next_page_token
 
     def _list_file(
             self,

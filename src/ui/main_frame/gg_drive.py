@@ -1,10 +1,7 @@
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Dict, Tuple
 
 import customtkinter
-from CTkListbox import CTkListbox
-from customtkinter import CTkScrollableFrame
-
 from src.common.constants import STARTING_PAGE
 from src.common.objects import Metadata
 from src.ui.context import Context
@@ -37,8 +34,8 @@ class GoogleDriveFrame(customtkinter.CTkFrame, ContextSubscriber):
         self._search_bar.grid(row=0, column=0, padx=10, pady=(10, 10), sticky="new")
         self._vault = GoogleDrive(config)
         self._list_folders = ListContainer(self)
-        self._list_folders.grid(row=1, column=0, padx=10, pady=(10, 10), sticky="new")
-        self._pages_data = {}
+        self._list_folders.grid(row=1, column=0, padx=10, pady=(10, 10), sticky="nsew")
+        self._pages_data: Dict[Tuple[str, str], Any] = {}
         self._page_nav_bar = PagingNavBar(self, self._context)
         self._page_nav_bar.grid(row=2, column=0, padx=10, pady=(10, 10), sticky="sew")
         self._current_search_key = None
@@ -55,7 +52,7 @@ class GoogleDriveFrame(customtkinter.CTkFrame, ContextSubscriber):
     def _update_page_display(self, folders: list[Metadata]):
         if len(self._pages_data) > FOLDER_LIST_CACHE_SIZE:
             self._pages_data.clear()
-        self._pages_data[self._context.get_key("current_page")] = folders
+        self._pages_data[self._current_page_key()] = folders
         self._list_folders.clear_items()
         self._list_folders.add_items(folders)
 
@@ -64,10 +61,12 @@ class GoogleDriveFrame(customtkinter.CTkFrame, ContextSubscriber):
             "Selected %s", selected_option
         )
 
+    def _current_page_key(self):
+        return self._current_search_key, self._context.get_key("current_page")
+
     def on_ctx_change(self):
-        page = self._context.get_key("current_page", STARTING_PAGE)
-        if page in self._pages_data:
-            self._update_page_display(self._pages_data[page])
+        if self._current_page_key() in self._pages_data:
+            self._update_page_display(self._pages_data[self._current_page_key()])
         else:
             folders, self._next_page_token = self._vault.search_folder_by_name(
                 folder_name=self._current_search_key,

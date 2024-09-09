@@ -6,6 +6,8 @@ import time
 from datetime import datetime
 from typing import Optional, Union, List, Tuple
 
+import dateutil
+import dateutils
 import requests
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -22,6 +24,9 @@ from src.vault.base import Vault, Metadata
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 RETRY = 6
 PAGE_SIZE = 20
+
+
+_logger = logging.getLogger(__name__)
 
 
 class GoogleDrive(Vault):
@@ -109,8 +114,10 @@ class GoogleDrive(Vault):
 
     def _parse_date(self, dt_str: str) -> Optional[datetime]:
         try:
-            return datetime.fromisoformat(dt_str)
-        except Exception:
+            dt = dateutil.parser.parse(dt_str)
+            return dt
+        except Exception as e:
+            _logger.exception("Failed to parse date %s", dt_str)
             return None
 
     def _parse_extension(

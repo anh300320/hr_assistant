@@ -1,26 +1,15 @@
 import os.path
 
-import jaro
-import py4Soundex.code
-import soundex
-import webview
-from py4Soundex.code import Soundex
-
 from src.common.disk_sentinel import DiskSentinel
 from src.common.logging import init_logging
-from src.database import crud
 from src.database.connection import init_database
 from src.index.index_persist import IndexPersistent
 from src.index.indexer import Indexer
 from src.parsers.doc_parser import DocParser
 from src.parsers.pdf_parser import PdfParser
-from src.search.objects import SearchEntry
-from src.search.retriever import Retriever
 from src.tokenizer.base import Tokenizer
 from src.tokenizer.normalizer import LemmingNormalizer
 from src.ui.app import AppUI
-from src.ui.context import Context
-from src.ui.sidebar.sidebar import Sidebar
 from src.vault.google_drive import GoogleDrive
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]

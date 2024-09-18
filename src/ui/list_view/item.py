@@ -34,6 +34,7 @@ class AssetItem(customtkinter.CTkFrame):
         self.created_date = created_date
         self.updated_date = updated_date
         self.grid_columnconfigure(index=0, weight=1)
+        self.grid_columnconfigure(index=1, weight=3)
         # self.grid_columnconfigure(index=1, weight=3) # TODO when have folder icon
         if self.asset_type == FileType.FOLDER:
             image_fp = "resources/assets/icon_folder.png"
@@ -51,24 +52,45 @@ class AssetItem(customtkinter.CTkFrame):
             corner_radius=6,
         )
         self.icon.grid(row=0, column=0, padx=10, pady=(10, 10), sticky="new")
+        self._asset_info = AssetInfo(
+            self,
+            create_at=self.created_date,
+            modify_at=self.updated_date,
+            name=self.name
+        )
+        self._asset_info.grid(row=0, column=1, padx=10, pady=(10, 10), sticky="nsew")
+
+
+class AssetInfo(customtkinter.CTkFrame):
+    def __init__(
+            self,
+            master: Any,
+            create_at: datetime,
+            modify_at: datetime,
+            name: str,
+            **kwargs,
+    ):
+        super().__init__(master, **kwargs)
+        self.grid_rowconfigure(index=2, weight=1)
+        self.grid_columnconfigure(index=0, weight=1)
         self.name_label = customtkinter.CTkLabel(
             self,
-            text=self.name,
+            text=name,
             fg_color="gray30",
             corner_radius=6,
         )
-        self.name_label.grid(row=0, column=1, padx=10, pady=(10, 10), sticky="new")
+        self.name_label.grid(row=0, column=0, padx=10, pady=(10, 10), sticky="new")
         self.created_label = customtkinter.CTkLabel(
             self,
-            text=get_time_since(self.created_date, "created"),
+            text=get_time_since(create_at, "created"),
             fg_color="gray30",
             corner_radius=6,
         )
-        self.created_label.grid(row=1, column=1, padx=10, pady=(10, 10), sticky="new")
+        self.created_label.grid(row=1, column=0, padx=10, pady=(10, 10), sticky="new")
         self.updated_label = customtkinter.CTkLabel(
             self,
-            text=get_time_since(self.updated_date, "updated"),
+            text=get_time_since(modify_at, "updated"),
             fg_color="gray30",
             corner_radius=6,
         )
-        self.updated_label.grid(row=2, column=1, padx=10, pady=(10, 10), sticky="new")
+        self.updated_label.grid(row=2, column=0, padx=10, pady=(10, 10), sticky="new")

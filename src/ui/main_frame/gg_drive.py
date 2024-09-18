@@ -30,6 +30,9 @@ class GoogleDriveFrame(customtkinter.CTkFrame, ContextSubscriber):
             placeholder_text="enter your folder name",
         )
         self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=8)
+        self.grid_rowconfigure(2, weight=1)
         self._search_bar.bind("<Return>", self.enter_search_folder)
         self._search_bar.grid(row=0, column=0, padx=10, pady=(10, 10), sticky="new")
         self._vault = GoogleDrive(config)

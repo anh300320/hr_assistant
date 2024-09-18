@@ -10,6 +10,7 @@ class ListContainer(customtkinter.CTkScrollableFrame):
     def __init__(self, master: Any, **kwargs):
         super().__init__(master, **kwargs)
         self.grid_rowconfigure(index=5, weight=1)
+        self.grid_columnconfigure(index=0, weight=1)
         self._items: list[AssetItem] = []
 
     def add_items(self, metadatas: List[Metadata]):

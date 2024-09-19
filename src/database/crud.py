@@ -110,3 +110,10 @@ def add_tracked_folder(folder: Metadata):
         logging.getLogger(__name__).info(
             "Added tracked folder %s", folder.name
         )
+
+
+def get_tracked_folders(vault_ids: List[str]):
+    with get_db() as db:
+        query = select(TrackedFolder).where(TrackedFolder.c.vault_id.in_(vault_ids))
+        tracked_folders = db.execute(query).fetchall()
+        return tracked_folders

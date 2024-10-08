@@ -1,11 +1,12 @@
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Iterable, Set
 
 from sqlalchemy.orm import Session
 
 from src.common.objects import Metadata, VaultType
 from src.database import models
 from src.database.connection import get_db
+from src.database.converter import cvt_tracked_folder_to_metadata
 from src.database.models import DocumentInfo, TrackedFolder
 from sqlalchemy import select
 
@@ -112,8 +113,17 @@ def add_tracked_folder(folder: Metadata):
         )
 
 
-def get_tracked_folders(vault_ids: List[str]):
+def get_tracked_folders(
+        vault_ids: Set[str],
+        vault_type: VaultType
+) -> Iterable[Metadata]:
     with get_db() as db:
-        query = select(TrackedFolder).where(TrackedFolder.c.vault_id.in_(vault_ids))
-        tracked_folders = db.execute(query).fetchall()
-        return tracked_folders
+        query = select(TrackedFolder).where(
+            TrackedFolder.c.vault_id.in_(vault_ids),
+            TrackedFolder.c.vault_type == models.VaultType(vault_type.value)
+        )
+        tracked_folders: Iterable[TrackedFolder] = db.execute(query).fetchall()
+        return map(
+            cvt_tracked_folder_to_metadata,
+            tracked_folders,
+        )

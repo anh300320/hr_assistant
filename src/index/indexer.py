@@ -45,7 +45,6 @@ class Indexer:
     def run(self):
         try:
             all_metadata = self._vault.load_all_tracked_files()  # TODO batching
-            # all_metadata = all_metadata[:30]
             new_docs: List[Metadata] = []
             updated_docs: List[Tuple[DocumentInfo, Metadata]] = []
             for metadata in all_metadata:

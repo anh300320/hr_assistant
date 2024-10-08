@@ -16,6 +16,7 @@ class AssetItem(customtkinter.CTkFrame):
             folder_name: str,
             created_date: datetime,
             updated_date: datetime,
+            is_checked: bool = False,
             **kwargs
     ):
         super().__init__(master, **kwargs)
@@ -52,6 +53,10 @@ class AssetItem(customtkinter.CTkFrame):
         self._asset_info.grid(row=0, column=1, padx=10, pady=(10, 10), sticky="nsew")
         self._checkbox = customtkinter.CTkCheckBox(self, text="Is monitored")
         self._checkbox.grid(row=0, column=2, padx=10, pady=(10, 10), sticky="nsew")
+        if is_checked:
+            self._checkbox.select()
+        else:
+            self._checkbox.deselect()
 
 
 class AssetInfo(customtkinter.CTkFrame):

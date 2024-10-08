@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Set
 
 import customtkinter
 
@@ -13,7 +13,7 @@ class ListContainer(customtkinter.CTkScrollableFrame):
         self.grid_columnconfigure(index=0, weight=1)
         self._items: list[AssetItem] = []
 
-    def add_items(self, metadatas: List[Metadata]):
+    def add_items(self, metadatas: List[Metadata], checked_ids: Set[str]):
         if len(metadatas) > 5:
             raise Exception("Number of item exceeded")
         for i, metadata in enumerate(metadatas):
@@ -22,7 +22,8 @@ class ListContainer(customtkinter.CTkScrollableFrame):
                 asset_type=metadata.file_type,
                 folder_name=metadata.name,
                 created_date=metadata.create_date,
-                updated_date=metadata.update_date
+                updated_date=metadata.update_date,
+                is_checked=(metadata.vault_id in checked_ids)
             )
             item.grid(row=i, column=0, padx=10, pady=(10, 10), sticky="new")
             self._items.append(item)

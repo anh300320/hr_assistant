@@ -1,8 +1,8 @@
 import enum
 
-from sqlalchemy import Enum, Index
+from sqlalchemy import Enum, Index, String
 from sqlalchemy.dialects.sqlite import DATETIME
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, MappedColumn
 
 
 class Base(DeclarativeBase):
@@ -16,12 +16,12 @@ class VaultType(enum.Enum):
 
 class DocumentInfo(Base):
     __tablename__ = 'document_info'
-    __table_args__ = (Index('identifier_index', "vault_id", "vault_type"),)
+    # __table_args__ = (Index('identifier_index', "vault_id", "vault_type"),)
     id: Mapped[int] = mapped_column(primary_key=True)
-    vault_id: Mapped[str]
-    name: Mapped[str]
+    vault_id: MappedColumn[str] = mapped_column(String, nullable=False)
+    name: MappedColumn[str] = mapped_column(String,  nullable=False)
     vault_type: Mapped[VaultType] = mapped_column(Enum(VaultType))
-    path: Mapped[str]
+    path: MappedColumn[str] = mapped_column(String, nullable=False)
     create_date = mapped_column(DATETIME)
     update_date = mapped_column(DATETIME)
 
@@ -29,9 +29,9 @@ class DocumentInfo(Base):
 class TrackedFolder(Base):
     __tablename__ = "tracked_folder"
     id: Mapped[int] = mapped_column(primary_key=True)
-    vault_id: Mapped[str]
-    name: Mapped[str]
+    vault_id: MappedColumn[str] = mapped_column(String, nullable=False)
+    name: MappedColumn[str] = mapped_column(String, nullable=False)
     vault_type: Mapped[VaultType] = mapped_column(Enum(VaultType))
-    path: Mapped[str]
+    path: MappedColumn[str] = mapped_column(String, nullable=False)
     create_date = mapped_column(DATETIME)
     update_date = mapped_column(DATETIME)

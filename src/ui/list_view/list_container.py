@@ -19,10 +19,7 @@ class ListContainer(customtkinter.CTkScrollableFrame):
         for i, metadata in enumerate(metadatas):
             item = AssetItem(
                 self,
-                asset_type=metadata.file_type,
-                folder_name=metadata.name,
-                created_date=metadata.create_date,
-                updated_date=metadata.update_date,
+                metadata=metadata,
                 is_checked=(metadata.vault_id in checked_ids)
             )
             item.grid(row=i, column=0, padx=10, pady=(10, 10), sticky="new")

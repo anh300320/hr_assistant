@@ -26,7 +26,7 @@ def main():
     init_database(f'sqlite:///{os.path.join("temp", "hr_assistant.db")}')
     config = {
         "google_drive_folder": "TEST_CV",
-      }
+    }
     tokenizers = [
         # SemanticTokenize({}),
         Tokenizer()
@@ -71,6 +71,7 @@ def main():
 
 def test_ui():
     init_logging()
+    init_database(f'sqlite:///{os.path.join("temp", "hr_assistant.db")}')
     config = {}
     app = AppUI(config)
     app.mainloop()

@@ -8,11 +8,10 @@ from src.database import models
 from src.database.connection import get_db
 from src.database.converter import cvt_tracked_folder_to_metadata
 from src.database.models import DocumentInfo, TrackedFolder
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 
 def add_document_metadata(session: Session, metadatas: List[Metadata]) -> List[DocumentInfo]:
-    # db = SessionLocal()
     batch = []
     for metadata in metadatas:
         obj = DocumentInfo(
@@ -118,12 +117,22 @@ def get_tracked_folders(
         vault_type: VaultType
 ) -> Iterable[Metadata]:
     with get_db() as db:
-        query = select(TrackedFolder).where(
-            TrackedFolder.c.vault_id.in_(vault_ids),
-            TrackedFolder.c.vault_type == models.VaultType(vault_type.value)
-        )
-        tracked_folders: Iterable[TrackedFolder] = db.execute(query).fetchall()
-        return map(
+        tracked_folders: Iterable[TrackedFolder] = db.query(
+            TrackedFolder
+        ).filter(
+            TrackedFolder.vault_id.in_(vault_ids),
+            TrackedFolder.vault_type == models.VaultType(vault_type.value)
+        ).all()
+        result = list(map(
             cvt_tracked_folder_to_metadata,
             tracked_folders,
+        ))
+        return result
+
+def remove_tracked_folder(folder: Metadata):
+    with get_db() as db:
+        statement = delete(TrackedFolder).where(
+            TrackedFolder.vault_id == folder.vault_id,
+            TrackedFolder.vault_type == models.VaultType(folder.vault_type.value)
         )
+        db.execute(statement)

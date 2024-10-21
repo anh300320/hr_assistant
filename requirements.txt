@@ -11,3 +11,7 @@ pytz==2024.1
 customtkinter==5.2.2
 CTkListbox==1.4
 dateutils==0.6.12
+python-dateutil==2.9.0.post0
+requests==2.32.3
+protobuf==5.28.2
+textract==1.6.5

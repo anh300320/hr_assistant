@@ -18,6 +18,7 @@ from googleapiclient.http import MediaIoBaseDownload
 
 from src.common.exceptions import InternalException
 from src.common.objects import LoadedFile, LoadedFileType, VaultType, FileType
+from src.config.base import Config
 from src.database.models import TrackedFolder
 from src.vault.base import Vault, Metadata
 
@@ -33,7 +34,7 @@ class GoogleDrive(Vault):
 
     vault_type = VaultType.GOOGLE_DRIVE
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         super().__init__(config)
         self._temp_dir = config.get('temp_dir', 'google_drive_temp')
         self._google_credential_dir = config.get(
@@ -65,6 +66,7 @@ class GoogleDrive(Vault):
                 )
                 list_files = self._load_all_files_in_folder_recursive(folder)
                 all_tracked_files.extend(list_files)
+                logging.getLogger(__name__).info("Loaded %s files from folder %s", len(list_files), folder.name)
             except Exception:
                 logging.getLogger(__name__).exception(
                     "Failed to get all files from tracked folder %s", folder
@@ -102,13 +104,14 @@ class GoogleDrive(Vault):
         metadatas = []
         while first_try or next_page_token:
             first_try = False
-            resp = self._list_file(
+            folders, next_page_token = self._list_file(
                 credentials=credentials,
                 page_size=PAGE_SIZE,
                 query=f"'{folder.vault_id}' in parents",
                 fields="nextPageToken, files(id, name, webContentLink, webViewLink, mimeType, fullFileExtension, createdTime, modifiedTime)",
                 page_token=next_page_token,
             )
+            metadatas.extend(folders)
 
         return metadatas
 

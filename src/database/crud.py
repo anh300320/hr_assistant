@@ -35,50 +35,50 @@ def add_document_metadata(session: Session, metadatas: List[Metadata]) -> List[D
 
 
 def load_all_metadatas(
+        db_sess: Session,
         vault_type: int,
         batch_size: int = 1000,
 ) -> List[DocumentInfo]:
     page = 0
-    with get_db() as db:
-        while True:
-            stmt = select(DocumentInfo)\
-                .where(DocumentInfo.vault_type == models.VaultType(vault_type))\
-                .limit(batch_size)\
-                .offset(page * batch_size)
-            rows = db.execute(stmt)
-            if not rows:
-                break
-            yield rows # TODO convert
-            page += 1
+    while True:
+        stmt = select(DocumentInfo)\
+            .where(DocumentInfo.vault_type == models.VaultType(vault_type))\
+            .limit(batch_size)\
+            .offset(page * batch_size)
+        rows = db_sess.execute(stmt)
+        if not rows:
+            break
+        yield rows # TODO convert
+        page += 1
 
 def get_document(
+        db_sess: Session,
         vault_id: str,
         vault_type: VaultType,
 ) -> Optional[DocumentInfo]:
-    with get_db(auto_commit=False) as db:
-        stmt = (
-            select(DocumentInfo)
-            .where(
-                DocumentInfo.vault_type == models.VaultType(vault_type.value),
-                DocumentInfo.vault_id == vault_id
-            )
+    stmt = (
+        select(DocumentInfo)
+        .where(
+            DocumentInfo.vault_type == models.VaultType(vault_type.value),
+            DocumentInfo.vault_id == vault_id
         )
-        row = db.execute(stmt).scalars().first()
-        return row
+    )
+    row = db_sess.execute(stmt).scalars().first()
+    return row
 
 
 def get_doc_by_id(
+        db_sess: Session,
         doc_id: int
 ) -> DocumentInfo:
-    with get_db(auto_commit=False) as db:
-        stmt = (
-            select(DocumentInfo)
-            .where(
-                DocumentInfo.id == doc_id
-            )
+    stmt = (
+        select(DocumentInfo)
+        .where(
+            DocumentInfo.id == doc_id
         )
-        row = db.execute(stmt).scalars().first()
-        return row
+    )
+    row = db_sess.execute(stmt).scalars().first()
+    return row
 
 
 def batch_update_docs_update_time(
@@ -113,21 +113,27 @@ def add_tracked_folder(folder: Metadata):
 
 
 def get_tracked_folders(
-        vault_ids: Set[str],
-        vault_type: VaultType
+    db_sess: Session,
+    vault_type: VaultType,
+    vault_ids: Set[str] | None = None,
 ) -> Iterable[Metadata]:
-    with get_db() as db:
-        tracked_folders: Iterable[TrackedFolder] = db.query(
-            TrackedFolder
-        ).filter(
+    query = select(TrackedFolder)
+    if vault_ids:
+        query = query.filter(
             TrackedFolder.vault_id.in_(vault_ids),
-            TrackedFolder.vault_type == models.VaultType(vault_type.value)
-        ).all()
-        result = list(map(
-            cvt_tracked_folder_to_metadata,
-            tracked_folders,
-        ))
-        return result
+            TrackedFolder.vault_type == models.VaultType(vault_type.value),
+        )
+    else:
+        query = query.filter(
+            TrackedFolder.vault_type == models.VaultType(vault_type.value),
+        )
+    result = db_sess.execute(query)
+    tracked_folders = result.scalars()
+    result = list(map(
+        cvt_tracked_folder_to_metadata,
+        tracked_folders,
+    ))
+    return result
 
 def remove_tracked_folder(folder: Metadata):
     with get_db() as db:

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, date
+from typing import Any, List
 
 import pytz
 
@@ -31,3 +32,12 @@ def get_current_utc() -> datetime:
     now = datetime.utcnow()
     utc = pytz.UTC
     return utc.localize(now)
+
+
+def batch_gen(elements: List[Any], batch_size: int):
+    batch = []
+    for e in elements:
+        batch.append(e)
+        if len(batch) >= batch_size:
+            yield batch
+            batch = []

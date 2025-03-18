@@ -1,14 +1,12 @@
 from contextlib import contextmanager
-from datetime import date
 from pathlib import Path
-from typing import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from src.database import models
 
-SessionLocal = scoped_session(sessionmaker(autoflush=True))
+SessionLocal = scoped_session(sessionmaker())
 
 
 @contextmanager

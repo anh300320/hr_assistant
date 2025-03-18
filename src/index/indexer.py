@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.common.disk_sentinel import DiskSentinel
 from src.common.objects import Metadata, Index
-from src.common.utils import datetime_str
+from src.common.utils import datetime_str, batch_gen
 from src.database import crud
 from src.database.connection import get_db
 from src.database.models import DocumentInfo
@@ -23,43 +23,40 @@ class Indexer:
 
     def __init__(
             self,
-            last_updated_fp: str,
             vault: Vault,
             tokenizers: list[Tokenizer],
             normalizers: List[Normalizer],
             parsers: list[Parser],
             index_persistent: IndexPersistent,
-            disk_sentinel: DiskSentinel,
+            # disk_sentinel: DiskSentinel,
     ):
         self._vault = vault
         self._tokenizers = tokenizers
         self._normalizers = normalizers
-        self._threadpool_size = 2
+        self._threadpool_size = 4
         self._parsers: dict[str, Parser] = {}
         for parser in parsers:
             for t in parser.file_types:
                 self._parsers[t] = parser
         self._index_persistent = index_persistent
-        self._disk_sentinel = disk_sentinel
+        # self._disk_sentinel = disk_sentinel
 
-    def run(self):
-        try:
-            all_metadata = self._vault.load_all_tracked_files()  # TODO batching
-            new_docs: List[Metadata] = []
-            updated_docs: List[Tuple[DocumentInfo, Metadata]] = []
-            for metadata in all_metadata:
-                saved = crud.get_document(
-                    metadata.vault_id,
-                    metadata.vault_type,
-                )
-                if not saved:
-                    new_docs.append(metadata)
-                elif datetime_str(saved.update_date) < datetime_str(metadata.update_date):
-                    updated_docs.append((saved, metadata))
-            self._build_for_updated_documents(updated_docs)
-            self._build_for_new_documents(new_docs)
-        finally:
-            self._disk_sentinel.clean_up()
+    def run(self, db_sess: Session, tracked_folders: list[Metadata]):
+        all_metadata = self._vault.load_all_tracked_files(tracked_folders)
+        new_docs: List[Metadata] = []
+        updated_docs: List[Tuple[DocumentInfo, Metadata]] = []
+        for metadata in all_metadata:
+            saved = crud.get_document(
+                db_sess,
+                metadata.vault_id,
+                metadata.vault_type,
+            )
+            if not saved:
+                new_docs.append(metadata)
+            elif datetime_str(saved.update_date) < datetime_str(metadata.update_date):
+                updated_docs.append((saved, metadata))
+        self._build_for_updated_documents(db_sess, updated_docs)
+        self._build_for_new_documents(db_sess, new_docs)
 
     def _build_index(
             self,
@@ -111,25 +108,27 @@ class Indexer:
 
     def _build_for_updated_documents(
             self,
+            db_sess: Session,
             updated_docs: List[Tuple[DocumentInfo, Metadata]],
     ):
         if not updated_docs:
             return
-        with get_db() as session:
-            crud.batch_update_docs_update_time(session, updated_docs)
-            index = self._build_index([m for _, m in updated_docs])
-            self._persist_index(index, [d for d, _ in updated_docs])
+        crud.batch_update_docs_update_time(db_sess, updated_docs)
+        for batch in batch_gen(updated_docs, batch_size=100):
+            index = self._build_index([m for _, m in batch])
+            self._persist_index(index, [d for d, _ in batch])
 
     def _build_for_new_documents(
             self,
+            db_sess: Session,
             new_docs: List[Metadata],
     ):
         if not new_docs:
             return
-        with get_db(auto_commit=True) as session:
-            inserted_docs = crud.add_document_metadata(session, new_docs)
-            index = self._build_index(new_docs)
-            self._persist_index(index, inserted_docs)
+        inserted_docs = crud.add_document_metadata(db_sess, new_docs)
+        for batch in batch_gen(list(zip(inserted_docs, new_docs)), batch_size=100):
+            index = self._build_index([m for _, m in batch])
+            self._persist_index(index, [d for d, _ in batch])
 
     def _persist_index(
             self,

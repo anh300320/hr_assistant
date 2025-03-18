@@ -1,7 +1,4 @@
-import os.path
 import re
-
-from nltk import wordpunct_tokenize
 
 from src.common.objects import Token
 

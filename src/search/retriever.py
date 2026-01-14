@@ -93,13 +93,6 @@ class Retriever:
                 doc_candidates[pointer.doc_id].add(i, key, pointer)
         return doc_candidates
 
-    def extract_full_match(
-            self,
-            search_entry: SearchEntry,
-    ):
-        for i in range(len(search_entry.words)):
-            pass
-
     def _clean_up_pointers(
             self,
             pointers: List[Pointer],

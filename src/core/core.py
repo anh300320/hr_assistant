@@ -6,7 +6,6 @@ from typing import List
 
 from sqlalchemy.orm import Session
 
-from src.common.disk_sentinel import DiskSentinel
 from src.common.objects import VaultType
 from src.config.base import Config
 from src.database import crud
@@ -18,6 +17,7 @@ from src.parsers.doc_parser import DocParser
 from src.parsers.pdf_parser import PdfParser
 from src.search.entry_processor import EntryProcessor
 from src.search.retriever import Retriever
+from src.search.searcher import BooleanSearcher
 from src.tokenizer.base import Tokenizer
 from src.tokenizer.normalizer import LemmingNormalizer
 from src.tokenizer.semantic import SemanticTokenize
@@ -66,15 +66,15 @@ class HrAssistantCore:
             index_persistent,
             # disk_sentinel
         )
-        self._retriever = Retriever(index_persistent)
-        self._entry_processor = EntryProcessor()
+        retriever = Retriever(index_persistent)
+        entry_processor = EntryProcessor()
+        self._searcher = BooleanSearcher(
+            retriever,
+            entry_processor,
+        )
 
     def search(self, db_sess: Session, query: str) -> List[MatchedEntry]:
-        entries = self._entry_processor.produce_search_entries(query)
-        doc_ids = set()
-        _logger.info("Entries %s", entries)
-        for entry in entries:
-            doc_ids = doc_ids.union(self._retriever.get(entry))
+        doc_ids = self._searcher.search(query)
         _logger.info("Matched ids %s", doc_ids)
         matched_entries: List[MatchedEntry] = []
         for doc_id in doc_ids:

@@ -1,6 +1,7 @@
 from src.common.logging import init_logging
 from src.config.base import ConfigLoader
 from src.core.core import HrAssistantCore
+from src.search.boolean_search import parse_raw_boolean_search
 from src.telebot.telegram_bot import TelegramBot
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
